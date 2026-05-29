@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WC26 Forecast Lab — World Cup Predictive Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#E8192C;--purple:#5B2D8E;--lime:#C8E600;
+  --black:#0D0D0D;--offwhite:#F5F4EF;--mid:#E8E6DE;--mid2:#D4D2C8;
+  --surface:#ffffff;
+  --bebas:'Bebas Neue',sans-serif;--dm:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --radius:4px;
+}
+body{background:var(--offwhite);color:var(--black);font-family:var(--dm);font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--black);display:flex;align-items:stretch;border-bottom:4px solid var(--red);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.4)}
+.tb-logo{background:var(--red);padding:10px 18px;display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.tb-logo-big{font-family:var(--bebas);font-size:22px;color:#fff;letter-spacing:2px;line-height:1}
+.tb-logo-sub{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.55);letter-spacing:1.5px}
+.tb-accent{background:var(--purple);width:8px;align-self:stretch;flex-shrink:0}
+.tb-accent2{background:var(--lime);width:5px;align-self:stretch;flex-shrink:0}
+.tb-nav{display:flex;align-items:stretch;padding:0 6px;overflow-x:auto;flex:1;scrollbar-width:none}
+.tb-nav::-webkit-scrollbar{display:none}
+.tb-btn{font-family:var(--bebas);font-size:14px;letter-spacing:1.2px;color:rgba(255,255,255,.4);padding:0 12px;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-4px;transition:.15s;white-space:nowrap}
+.tb-btn:hover{color:rgba(255,255,255,.8)}
+.tb-btn.on{color:#fff;border-bottom-color:var(--lime)}
+.tb-right{display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.tb-badge{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.8px;white-space:nowrap}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── PAGES ── */
+.pg{display:none;padding:18px;max-width:1200px;margin:0 auto}
+.pg.on{display:block}
+
+/* ── HERO BAND ── */
+.hero-band{display:flex;align-items:stretch;height:74px;margin-bottom:18px;overflow:hidden;box-shadow:var(--shadow)}
+.hb-red{background:var(--red);flex:3;display:flex;align-items:center;padding:0 20px;gap:14px}
+.hb-red-title{font-family:var(--bebas);font-size:46px;color:#fff;letter-spacing:3px;line-height:1}
+.hb-red-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.6);letter-spacing:1.5px;line-height:1.6}
+.hb-pill{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0 18px}
+.hb-pill.purple{background:var(--purple)}
+.hb-pill.lime{background:var(--lime)}
+.hb-num{font-family:var(--bebas);font-size:24px;letter-spacing:1px;line-height:1}
+.hb-pill.purple .hb-num{color:#fff}
+.hb-pill.lime .hb-num{color:var(--black)}
+.hb-lbl{font-family:var(--mono);font-size:7px;letter-spacing:1.2px}
+.hb-pill.purple .hb-lbl{color:rgba(255,255,255,.5)}
+.hb-pill.lime .hb-lbl{color:rgba(0,0,0,.5)}
+
+/* ── LAYOUT ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.divider{height:1px;background:var(--mid);margin:12px 0}
+.section-lbl{font-family:var(--bebas);font-size:12px;letter-spacing:1.5px;color:rgba(0,0,0,.35);margin-bottom:8px}
+
+/* ── PANEL ── */
+.panel{background:var(--surface);border:1.5px solid var(--mid);box-shadow:var(--shadow);transition:box-shadow .2s}
+.panel:hover{box-shadow:var(--shadow-lg)}
+.ph{padding:10px 14px;border-bottom:1.5px solid var(--mid);display:flex;align-items:center;justify-content:space-between}
+.ph-title{font-family:var(--bebas);font-size:15px;letter-spacing:1.2px}
+.ph-tag{font-family:var(--mono);font-size:9px;letter-spacing:.6px;padding:2px 6px}
+.tag-r{color:var(--red);border:1px solid var(--red)}
+.tag-p{color:var(--purple);border:1px solid var(--purple)}
+.tag-l{background:var(--lime);color:var(--black)}
+.tag-g{color:#1a6b3c;border:1px solid #1a6b3c}
+.pb{padding:14px}
+
+/* ── INSIGHT CARDS (homepage) ── */
+.insight-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:700px){.insight-cards{grid-template-columns:1fr}}
+.ic{border:1.5px solid var(--mid);background:var(--surface);overflow:hidden;box-shadow:var(--shadow);transition:.2s}
+.ic:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.ic-header{padding:10px 14px;display:flex;align-items:center;gap:10px}
+.ic-flag{font-size:28px;line-height:1}
+.ic-kicker{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px}
+.ic-name{font-family:var(--bebas);font-size:20px;letter-spacing:1px;line-height:1}
+.ic-body{padding:10px 14px;border-top:1px solid var(--mid)}
+.ic-big{font-family:var(--bebas);font-size:36px;letter-spacing:1px;line-height:1}
+.ic-desc{font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.5);margin-top:4px;line-height:1.5}
+.ic-bar{height:4px;background:var(--mid);margin-top:8px}
+.ic-bar-fill{height:100%;transition:width .8s}
+
+/* ── ODDS LIST ── */
+.odds-row{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--mid);cursor:pointer;transition:.12s}
+.odds-row:last-child{border-bottom:none}
+.odds-row:hover{background:var(--offwhite)}
+.odds-name{font-weight:600;font-size:12px;flex:1}
+.odds-track{flex:2;height:3px;background:var(--mid)}
+.odds-fill{height:100%;background:var(--red);transition:width .6s}
+.odds-pct{font-family:var(--mono);font-size:12px;font-weight:500;min-width:34px;text-align:right;color:var(--red)}
+
+/* ── RANKINGS TABLE ── */
+.rtable{width:100%;border-collapse:collapse}
+.rtable th{font-family:var(--bebas);font-size:12px;letter-spacing:.8px;color:rgba(0,0,0,.35);padding:8px 10px;text-align:left;border-bottom:2px solid var(--black);background:var(--offwhite);cursor:pointer;user-select:none;white-space:nowrap}
+.rtable th:hover{color:var(--black)}
+.rtable th.r{text-align:right}
+.rtable td{padding:8px 10px;border-bottom:1px solid var(--mid);font-size:12px;vertical-align:middle}
+.rtable td.r{text-align:right;font-family:var(--mono);font-size:11px}
+.rtable tr:hover td{background:var(--offwhite);cursor:pointer}
+.rtable tr:last-child td{border-bottom:none}
+.rank-n{font-family:var(--mono);font-size:11px;color:rgba(0,0,0,.3);width:24px;text-align:right;display:inline-block}
+.rtg-a{color:var(--red);font-family:var(--bebas);font-size:16px;letter-spacing:1px}
+.rtg-b{color:var(--purple);font-family:var(--bebas);font-size:16px;letter-spacing:1px}
+.rtg-c{color:rgba(0,0,0,.4);font-family:var(--bebas);font-size:16px;letter-spacing:1px}
+.conf-badge{font-family:var(--mono);font-size:8px;letter-spacing:.4px;padding:2px 5px;border:1px solid}
+.dhi-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:2px}
+.arrow-up{color:#1a6b3c;font-size:11px}
+.arrow-dn{color:var(--red);font-size:11px}
+
+/* ── GROUPS ── */
+.group-block{background:var(--surface);border:1.5px solid var(--mid);overflow:hidden;box-shadow:var(--shadow)}
+.group-head{padding:7px 12px;border-bottom:1.5px solid var(--mid);display:flex;align-items:center;gap:8px}
+.gt{width:100%;border-collapse:collapse;font-size:11px}
+.gt th{font-family:var(--bebas);font-size:10px;letter-spacing:.8px;color:rgba(0,0,0,.35);padding:5px 8px;text-align:center;background:var(--offwhite);border-bottom:1px solid var(--mid)}
+.gt th:first-child{text-align:left;padding-left:12px}
+.gt td{padding:6px 8px;border-bottom:1px solid var(--mid);text-align:center;cursor:pointer;transition:.1s}
+.gt td:first-child{text-align:left;padding-left:12px;font-weight:600}
+.gt tr:hover td{background:var(--offwhite)}
+.gt tr.q1 td{background:rgba(232,25,44,.04)}
+.gt tr.q1 td:first-child{border-left:3px solid var(--red)}
+.gt tr.q3 td{background:rgba(91,45,142,.04)}
+.gt tr.q3 td:first-child{border-left:3px solid var(--purple)}
+.gt tr:last-child td{border-bottom:none}
+.bubble-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--lime);margin-left:4px;vertical-align:middle}
+
+/* ── MATCH SIM ── */
+.match-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:14px;background:var(--offwhite);border-bottom:1.5px solid var(--mid)}
+.mt-flag{font-size:28px;margin-bottom:4px}
+.mt-name{font-family:var(--bebas);font-size:18px;letter-spacing:1px;line-height:1}
+.mt-style{font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4);margin-top:2px}
+.mt-vs{font-family:var(--bebas);font-size:20px;color:rgba(0,0,0,.15);text-align:center}
+.prob-strip{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1.5px solid var(--mid)}
+.ps-cell{padding:12px;text-align:center;border-right:1px solid var(--mid)}
+.ps-cell:last-child{border-right:none}
+.ps-big{font-family:var(--bebas);font-size:28px;letter-spacing:1px;line-height:1}
+.ps-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.6px;color:rgba(0,0,0,.4);margin-top:2px}
+.stat-row{display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid var(--mid);font-size:11px}
+.stat-row:last-child{border-bottom:none}
+.stat-lbl{color:rgba(0,0,0,.4);font-family:var(--mono);font-size:9px;letter-spacing:.5px;min-width:130px}
+.stat-bar{flex:1;height:4px;background:var(--mid);position:relative}
+.stat-bar-l{position:absolute;right:50%;top:0;height:100%;background:var(--red)}
+.stat-bar-r{position:absolute;left:50%;top:0;height:100%;background:var(--purple)}
+.stat-val-l{font-family:var(--mono);font-size:10px;font-weight:600;min-width:36px;text-align:right;color:var(--red)}
+.stat-val-r{font-family:var(--mono);font-size:10px;font-weight:600;min-width:36px;color:var(--purple)}
+.commentary{padding:10px 14px;background:var(--offwhite);border-top:1px solid var(--mid);font-size:11px;color:rgba(0,0,0,.6);font-style:italic;line-height:1.5}
+
+/* ── BRACKET ── */
+.bracket-outer{overflow-x:auto;padding-bottom:8px}
+.bracket{display:flex;align-items:flex-start}
+.b-round{min-width:148px;flex-shrink:0}
+.b-rh{font-family:var(--bebas);font-size:11px;letter-spacing:1.2px;color:rgba(0,0,0,.35);padding:6px 10px;text-align:center;background:var(--offwhite);border-bottom:1.5px solid var(--mid);border-right:1px solid var(--mid)}
+.b-ms{display:flex;flex-direction:column;padding:3px;border-right:1px solid var(--mid)}
+.b-match{border:1px solid var(--mid);margin:2px;background:var(--surface);cursor:pointer;transition:.1s}
+.b-match:hover{border-color:var(--red)}
+.b-team{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;font-size:10px;border-bottom:1px solid var(--mid)}
+.b-team:last-child{border-bottom:none}
+.b-team.win{font-weight:700;background:rgba(232,25,44,.05)}
+.b-team.lose{color:rgba(0,0,0,.3)}
+.b-pen{font-family:var(--mono);font-size:8px;color:var(--purple);padding:2px 7px;background:rgba(91,45,142,.05);border-top:1px solid var(--mid)}
+
+/* ── CHAMP BAR ── */
+.champ-bar{display:flex;align-items:center;margin-bottom:12px;height:58px;overflow:hidden;box-shadow:var(--shadow)}
+.cb-red{background:var(--red);flex:0 0 58px;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px}
+.cb-purple{background:var(--purple);flex:0 0 7px;height:100%}
+.cb-lime{background:var(--lime);flex:0 0 7px;height:100%}
+.cb-body{background:var(--black);flex:1;height:100%;display:flex;align-items:center;padding:0 14px;gap:10px}
+.cb-info{flex:1}
+.cb-label{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1.5px}
+.cb-name{font-family:var(--bebas);font-size:22px;color:#fff;letter-spacing:1.5px;line-height:1}
+.cb-rtg{font-family:var(--mono);font-size:18px;color:var(--lime);font-weight:500}
+
+/* ── CONTROLS ── */
+.ctrl{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--mid)}
+.ctrl:last-child{border-bottom:none}
+.clbl{font-family:var(--mono);font-size:9px;letter-spacing:.5px;color:rgba(0,0,0,.45);min-width:130px}
+.cval{font-family:var(--mono);font-size:12px;font-weight:500;min-width:48px;text-align:right;color:var(--purple)}
+input[type=range]{flex:1;accent-color:var(--red);height:3px}
+select{background:var(--surface);border:1.5px solid var(--mid);color:var(--black);padding:6px 10px;font-family:var(--dm);font-size:12px;outline:none;cursor:pointer;transition:.15s}
+select:focus{border-color:var(--red)}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--bebas);font-size:14px;letter-spacing:1.2px;padding:9px 18px;border:none;cursor:pointer;transition:.15s}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#c8101f;transform:translateY(-1px)}
+.btn-outline{background:none;color:var(--black);border:1.5px solid var(--mid2)}.btn-outline:hover{background:var(--mid)}
+.btn-lime{background:var(--lime);color:var(--black)}.btn-lime:hover{background:#b8d400}
+.btn-cancel{background:rgba(232,25,44,.1);color:var(--red);border:1px solid var(--red)}
+
+/* ── PROGRESS / LOADER ── */
+.mc-progress-wrap{margin-top:10px;display:none}
+.mc-progress-bar{height:6px;background:var(--mid);overflow:hidden;border-radius:3px}
+.mc-progress-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--purple));width:0%;transition:width .1s linear;border-radius:3px}
+.mc-progress-text{font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.45);margin-top:6px;display:flex;justify-content:space-between}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:0;position:relative}
+.modal-gradient{height:80px;display:flex;align-items:flex-end;padding:12px 16px;gap:12px}
+.modal-flag{font-size:36px;line-height:1}
+.modal-title{font-family:var(--bebas);font-size:26px;color:#fff;letter-spacing:1.5px;line-height:1;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.modal-close{position:absolute;top:8px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;font-family:var(--mono);font-size:13px;cursor:pointer;padding:4px 8px;line-height:1}
+.modal-close:hover{background:rgba(255,255,255,.35)}
+.modal-body{padding:14px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.modal-stat{background:var(--offwhite);padding:10px 12px}
+.modal-stat-val{font-family:var(--bebas);font-size:22px;letter-spacing:1px;line-height:1}
+.modal-stat-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.8px;color:rgba(0,0,0,.4);margin-top:2px}
+.sw-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.sw-tag{font-size:10px;padding:3px 8px;border-radius:2px;font-weight:500}
+.sw-s{background:rgba(26,107,60,.1);color:#1a6b3c}
+.sw-w{background:rgba(232,25,44,.08);color:var(--red)}
+.insight-box{background:var(--offwhite);border-left:3px solid var(--purple);padding:10px 12px;font-size:11px;color:rgba(0,0,0,.65);font-style:italic;line-height:1.5;margin-top:10px}
+
+/* ── DARK HORSE ── */
+.dh-card{background:linear-gradient(135deg,var(--purple) 0%,#3d1f63 100%);padding:14px;color:#fff}
+.dh-score{font-family:var(--bebas);font-size:42px;color:var(--lime);letter-spacing:1px;line-height:1}
+.dh-label{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1.5px}
+
+/* ── METHODOLOGY ── */
+.method-section{margin-bottom:20px}
+.method-title{font-family:var(--bebas);font-size:18px;letter-spacing:1.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--mid)}
+.method-body{font-size:12px;line-height:1.7;color:rgba(0,0,0,.65)}
+.formula-box{background:var(--offwhite);border:1px solid var(--mid);padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.8;margin:10px 0}
+.disclaimer{background:rgba(232,25,44,.05);border:1px solid rgba(232,25,44,.2);padding:10px 14px;font-size:11px;color:rgba(0,0,0,.6);margin-top:14px}
+
+/* ── ANALYTICS PAGE ── */
+.analytics-card{background:var(--surface);border:1.5px solid var(--mid);padding:14px;box-shadow:var(--shadow)}
+.ac-val{font-family:var(--bebas);font-size:32px;letter-spacing:1px;line-height:1}
+.ac-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.8px;color:rgba(0,0,0,.4);margin-top:3px}
+
+/* ── ATTR BARS (match) ── */
+.attr-row{display:grid;grid-template-columns:34px 1fr 64px 1fr 34px;align-items:center;gap:6px;padding:6px 14px;border-bottom:1px solid var(--mid)}
+.attr-row:last-child{border-bottom:none}
+.av{font-family:var(--mono);font-size:11px;font-weight:500;text-align:right}
+.av2{font-family:var(--mono);font-size:11px;font-weight:500}
+.albl{font-family:var(--bebas);font-size:10px;letter-spacing:.8px;color:rgba(0,0,0,.35);text-align:center}
+.abar{height:3px;background:var(--mid);position:relative}
+.ab-l{position:absolute;right:0;top:0;height:100%;background:var(--red)}
+.ab-r{position:absolute;left:0;top:0;height:100%;background:var(--purple)}
+
+/* ── MISC ── */
+.xgc{font-family:var(--bebas);font-size:26px;letter-spacing:1px;line-height:1}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--offwhite)}
+::-webkit-scrollbar-thumb{background:var(--mid2)}
+.bubble{display:inline-block;font-family:var(--mono);font-size:9px;padding:2px 6px;background:rgba(200,230,0,.2);color:#5a6200;border:1px solid var(--lime)}
+.third-panel{background:rgba(91,45,142,.05);border:1.5px solid rgba(91,45,142,.2);padding:12px 14px;margin-top:12px}
+
+/* stat counter animation */
+.count-up{display:inline-block}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOPBAR ═══════════════ -->
+<div class="topbar">
+  <div style="display:flex;align-items:stretch">
+    <div class="tb-logo">
+      <div class="tb-logo-big">WC26 FORECAST LAB</div>
+      <div class="tb-logo-sub">ELO &bull; FIFA &bull; FORM &bull; MONTE CARLO</div>
+    </div>
+    <div class="tb-accent"></div><div class="tb-accent2"></div>
+  </div>
+  <div class="tb-nav">
+    <button class="tb-btn on"  onclick="go('home',this)">Home</button>
+    <button class="tb-btn"     onclick="go('rankings',this)">Rankings</button>
+    <button class="tb-btn"     onclick="go('groups',this)">Groups</button>
+    <button class="tb-btn"     onclick="go('match',this)">Match Sim</button>
+    <button class="tb-btn"     onclick="go('bracket',this)">Bracket</button>
+    <button class="tb-btn"     onclick="go('compare',this)">Compare</button>
+    <button class="tb-btn"     onclick="go('mc',this)">Monte Carlo</button>
+    <button class="tb-btn"     onclick="go('analytics',this)">Analytics</button>
+    <button class="tb-btn"     onclick="go('method',this)">Methodology</button>
+    <button class="tb-btn"     onclick="go('picks',this)">📍 Daily Pick</button>
+  </div>
+  <div class="tb-right">
+    <div class="live-dot"></div>
+    <span class="tb-badge">48 TEAMS &bull; 12 GROUPS &bull; 50K SIMS</span>
+  </div>
+</div>
+
+<!-- ═══════════════ HOME ═══════════════ -->
+<div id="pg-home" class="pg on">
+  <div class="hero-band">
+    <div class="hb-red">
+      <div class="hb-red-title">2026</div>
+      <div><div class="hb-red-sub">FIFA WORLD CUP FORECAST LAB</div><div class="hb-red-sub">USA &bull; CANADA &bull; MEXICO &bull; JUN–JUL 2026</div></div>
+    </div>
+    <div class="hb-pill purple"><div class="hb-num">48</div><div class="hb-lbl">TEAMS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">12</div><div class="hb-lbl">GROUPS</div></div>
+    <div class="hb-pill purple"><div class="hb-num">50K</div><div class="hb-lbl">SIMS</div></div>
+    <div class="hb-pill lime"><div class="hb-num" id="home-topteam">—</div><div class="hb-lbl">FAVOURITE</div></div>
+  </div>
+  <div class="insight-cards" id="insight-cards"></div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Championship Probability</span><span class="ph-tag tag-r">Monte Carlo · 50K</span></div>
+      <div id="odds-list"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Top 5 Power Ratings</span><span class="ph-tag tag-p">FIFA + ELO + Form</span></div>
+        <div id="top5"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Confederation Avg. Rating</span></div>
+        <div class="pb" style="padding:10px 14px"><canvas id="confChart" height="120"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ RANKINGS ═══════════════ -->
+<div id="pg-rankings" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Rankings</div><div class="hb-red-sub" style="margin-left:14px">FIFA RANK + ELO + FORM COMPOSITE</div></div>
+    <div class="hb-pill purple"><div class="hb-num">48</div><div class="hb-lbl">NATIONS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">APR</div><div class="hb-lbl">2026</div></div>
+  </div>
+  <div class="row">
+    <button class="btn btn-red"     onclick="srt('ovr')">Overall</button>
+    <button class="btn btn-outline"  onclick="srt('atk')">Attack</button>
+    <button class="btn btn-outline"  onclick="srt('def')">Defense</button>
+    <button class="btn btn-outline"  onclick="srt('mid')">Midfield</button>
+    <button class="btn btn-outline"  onclick="srt('form')">Form</button>
+    <button class="btn btn-outline"  onclick="srt('dhi')">Dark Horse ↑</button>
+    <button class="btn btn-outline"  onclick="srtAsc('fr')">FIFA Rank</button>
+    <button class="btn btn-outline"  onclick="srt('elo')">ELO</button>
+    <select onchange="flt(this.value)" style="margin-left:4px">
+      <option value="">All Confederations</option>
+      <option>UEFA</option><option>CONMEBOL</option><option>CONCACAF</option>
+      <option>CAF</option><option>AFC</option><option>OFC</option>
+    </select>
+  </div>
+  <div style="padding:8px 12px;background:#fff;border:1.5px solid var(--mid);border-bottom:none;font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4)">
+    OVR = 40% FIFA pts (Apr 2026) + 40% ELO (Jan 2026) + 20% recent form &nbsp;|&nbsp; Click any team to open profile &nbsp;|&nbsp; Click column header to sort
+  </div>
+  <div class="panel">
+    <table class="rtable">
+      <thead><tr>
+        <th style="width:28px">#</th><th>Nation</th><th>Conf</th>
+        <th class="r" onclick="srt('ovr')">OVR ↕</th>
+        <th class="r" onclick="srtAsc('fr')">FIFA# ↕</th>
+        <th class="r" onclick="srt('elo')">ELO ↕</th>
+        <th class="r" onclick="srt('atk')">ATK ↕</th>
+        <th class="r" onclick="srt('def')">DEF ↕</th>
+        <th class="r" onclick="srt('mid')">MID ↕</th>
+        <th class="r" onclick="srt('dhi')">DHI ↕</th>
+        <th>Style</th>
+      </tr></thead>
+      <tbody id="rank-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════ GROUPS ═══════════════ -->
+<div id="pg-groups" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Groups</div><div class="hb-red-sub" style="margin-left:14px">OFFICIAL DRAW &bull; TOP 2 + BEST 8 THIRD ADVANCE</div></div>
+    <div class="hb-pill purple"><div class="hb-num">12</div><div class="hb-lbl">GROUPS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">32</div><div class="hb-lbl">QUALIFY</div></div>
+  </div>
+  <div class="row">
+    <button class="btn btn-red" onclick="simGroups()">▶ Simulate All Groups</button>
+    <button class="btn btn-outline" onclick="resetGroups()">Reset</button>
+    <span id="g-status" style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4)"></span>
+  </div>
+  <div id="g-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+  <div id="third-place-panel" style="display:none;margin-top:14px"></div>
+</div>
+
+<!-- ═══════════════ MATCH SIM ═══════════════ -->
+<div id="pg-match" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Match Sim</div><div class="hb-red-sub" style="margin-left:14px">1,000 ITERATIONS &bull; xG &bull; ADVANCED METRICS</div></div>
+    <div class="hb-pill purple"><div class="hb-num">xG</div><div class="hb-lbl">MODEL</div></div>
+    <div class="hb-pill lime"><div class="hb-num">ELO</div><div class="hb-lbl">POWERED</div></div>
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Configuration</span></div>
+      <div class="pb">
+        <div class="section-lbl">Team Selection</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div><div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4);letter-spacing:1px;margin-bottom:4px">TEAM A</div><select id="t1" style="width:100%" onchange="doSim()"><option value="">Select</option></select></div>
+          <div><div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4);letter-spacing:1px;margin-bottom:4px">TEAM B</div><select id="t2" style="width:100%" onchange="doSim()"><option value="">Select</option></select></div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-lbl">Environment</div>
+        <div class="ctrl"><span class="clbl">Neutral Venue</span><input type="range" id="en" min="0" max="1" step="1" value="1" oninput="doSim()"><span class="cval" id="en-v">Yes</span></div>
+        <div class="ctrl"><span class="clbl">Temperature (°C)</span><input type="range" id="et" min="5" max="45" value="22" oninput="doSim()"><span class="cval" id="et-v">22°C</span></div>
+        <div class="ctrl"><span class="clbl">Rest Days A</span><input type="range" id="er1" min="1" max="10" value="7" oninput="doSim()"><span class="cval" id="er1-v">7</span></div>
+        <div class="ctrl"><span class="clbl">Rest Days B</span><input type="range" id="er2" min="1" max="10" value="7" oninput="doSim()"><span class="cval" id="er2-v">7</span></div>
+        <div class="divider"></div>
+        <button class="btn btn-red" style="width:100%" onclick="doSim()">▶ Run 1,000 Simulations</button>
+      </div>
+    </div>
+    <div id="sim-result"><div class="panel" style="padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:rgba(0,0,0,.3)">Select two teams to begin.</div></div>
+  </div>
+  <div id="sim-lower" style="display:none;margin-top:14px">
+    <div class="g2">
+      <div class="panel"><div class="ph"><span class="ph-title">Attribute Breakdown</span></div><div id="attr-panel"></div></div>
+      <div class="panel"><div class="ph"><span class="ph-title">Radar Comparison</span></div><div class="pb" style="padding:10px"><canvas id="sim-radar" height="210"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ BRACKET ═══════════════ -->
+<div id="pg-bracket" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Bracket</div><div class="hb-red-sub" style="margin-left:14px">KNOCKOUT STAGE &bull; R32 → FINAL</div></div>
+    <div class="hb-pill purple"><div class="hb-num">5</div><div class="hb-lbl">ROUNDS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">32</div><div class="hb-lbl">TEAMS</div></div>
+  </div>
+  <div class="row">
+    <button class="btn btn-red" onclick="runBracket()">▶ Simulate Bracket</button>
+    <button class="btn btn-outline" onclick="resetBracket()">Reset</button>
+    <span id="bracket-src" style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4)"></span>
+  </div>
+  <div id="champ-bar" style="display:none"></div>
+  <div class="panel"><div class="bracket-outer"><div id="bracket" class="bracket"></div></div></div>
+</div>
+
+<!-- ═══════════════ COMPARE ═══════════════ -->
+<div id="pg-compare" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Compare</div><div class="hb-red-sub" style="margin-left:14px">HEAD-TO-HEAD ANALYTICS</div></div>
+    <div class="hb-pill purple"><div class="hb-num">H2H</div><div class="hb-lbl">ANALYSIS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">xG</div><div class="hb-lbl">POWERED</div></div>
+  </div>
+  <div class="row">
+    <select id="c1" style="min-width:160px" onchange="runCompare()"><option value="">Team A</option></select>
+    <span style="font-family:var(--bebas);font-size:18px;letter-spacing:2px;color:rgba(0,0,0,.2)">VS</span>
+    <select id="c2" style="min-width:160px" onchange="runCompare()"><option value="">Team B</option></select>
+  </div>
+  <div id="cmp-panel"><div class="panel" style="padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:rgba(0,0,0,.3)">Select two teams to compare.</div></div>
+</div>
+
+<!-- ═══════════════ MONTE CARLO ═══════════════ -->
+<div id="pg-mc" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Monte Carlo</div><div class="hb-red-sub" style="margin-left:14px">50,000 SIMULATION FORECASTING ENGINE</div></div>
+    <div class="hb-pill purple"><div class="hb-num">50K</div><div class="hb-lbl">MAX SIMS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">ASYNC</div><div class="hb-lbl">ENGINE</div></div>
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Parameters</span></div>
+      <div class="pb">
+        <div class="ctrl"><span class="clbl">Iterations</span><input type="range" id="mc-n" min="1000" max="50000" step="1000" value="10000" oninput="document.getElementById('mc-nv').textContent=Number(this.value).toLocaleString()"><span class="cval" id="mc-nv">10,000</span></div>
+        <div class="ctrl"><span class="clbl">Upset Factor</span><input type="range" id="mc-u" min="0" max="100" value="25" oninput="document.getElementById('mc-uv').textContent=this.value+'%'"><span class="cval" id="mc-uv">25%</span></div>
+        <div class="ctrl"><span class="clbl">Host Advantage</span><input type="range" id="mc-h" min="0" max="30" value="10" oninput="document.getElementById('mc-hv').textContent=this.value+'%'"><span class="cval" id="mc-hv">10%</span></div>
+        <div class="ctrl"><span class="clbl">Penalty Variance</span><input type="range" id="mc-p" min="0" max="100" value="50" oninput="document.getElementById('mc-pv').textContent=this.value+'%'"><span class="cval" id="mc-pv">50%</span></div>
+        <div class="divider"></div>
+        <div class="section-lbl">Roster Adjustments</div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="mc-inj" style="accent-color:var(--red)"> Star player injury risk (8% per team)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="mc-age" style="accent-color:var(--red)"> Aging squad penalty (exp > 85)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="mc-yth" style="accent-color:var(--red)"> Youth breakout boost (exp < 60)</label>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-red" style="flex:1" id="mc-run-btn" onclick="runMC()">▶ Run Monte Carlo</button>
+          <button class="btn btn-cancel" id="mc-cancel-btn" onclick="cancelMC()" style="display:none">✕ Cancel</button>
+        </div>
+        <div class="mc-progress-wrap" id="mc-progress-wrap">
+          <div class="mc-progress-bar"><div class="mc-progress-fill" id="mc-progress-fill"></div></div>
+          <div class="mc-progress-text"><span id="mc-progress-text">Starting…</span><span id="mc-eta"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Championship Win %</span><span class="ph-tag tag-l">Top 10</span></div>
+      <div class="pb" style="padding:10px"><canvas id="mc-chart" height="260"></canvas></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="ph"><span class="ph-title">Semi-final Reach % — Top 16</span></div>
+    <div class="pb" style="padding:10px"><canvas id="sf-chart" height="150"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ANALYTICS ═══════════════ -->
+<div id="pg-analytics" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Analytics</div><div class="hb-red-sub" style="margin-left:14px">ADVANCED TOURNAMENT INTELLIGENCE</div></div>
+    <div class="hb-pill purple"><div class="hb-num">PRO</div><div class="hb-lbl">METRICS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">AI</div><div class="hb-lbl">DRIVEN</div></div>
+  </div>
+  <div id="analytics-content"></div>
+</div>
+
+<!-- ═══════════════ METHODOLOGY ═══════════════ -->
+<div id="pg-method" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Methodology</div><div class="hb-red-sub" style="margin-left:14px">HOW THE FORECAST ENGINE WORKS</div></div>
+    <div class="hb-pill purple"><div class="hb-num">ELO</div><div class="hb-lbl">POWERED</div></div>
+    <div class="hb-pill lime"><div class="hb-num">MC</div><div class="hb-lbl">ENGINE</div></div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="method-section">
+        <div class="method-title">Overall Rating (OVR)</div>
+        <div class="method-body">Each team receives a composite OVR score on a 50–95 scale, derived from three data sources weighted by predictive reliability:</div>
+        <div class="formula-box">
+OVR = (0.40 × FIFA_pts_normalised)
+    + (0.40 × ELO_normalised)
+    + (0.20 × Recent_form_score)
+
+FIFA source : FIFA.com — April 1, 2026 update
+ELO source  : eloratings.net — January 2026
+Form score  : 0–10 based on qualifying results,
+              recent friendlies, tournament performance
+        </div>
+        <div class="method-body">Both FIFA and ELO are normalised against the full range of all 48 qualified teams before weighting. This prevents any single outlier dominating the composite.</div>
+      </div>
+      <div class="method-section">
+        <div class="method-title">Match Simulation Engine</div>
+        <div class="method-body">Each match uses an ELO-style probability formula with tactical modifiers:</div>
+        <div class="formula-box">
+Win probability (A vs B):
+  P(A) = 1 / (1 + 10^(-(adj_A - adj_B) / 15))
+
+adj = OVR + tactical_modifier + form_adj
+    + rest_bonus + venue_bonus
+
+Tactical modifier: ±0–10 pts based on
+  style matchup matrix (8×8 grid)
+
+Draw probability: scaled by rating delta
+  (closer teams → higher draw %)
+
+xG model: base 1.0 goals ± rating adj
+  capped at 0.3–3.5 per team
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="method-section">
+        <div class="method-title">Monte Carlo Tournament Simulation</div>
+        <div class="method-body">The engine simulates the full tournament bracket N times (up to 50,000) using chunked async JavaScript to avoid blocking the UI thread. Each iteration:</div>
+        <div class="formula-box">
+1. Apply stochastic rating noise per team
+   (controlled by upset factor slider)
+2. Apply roster adjustments if enabled
+   (injury risk, aging penalty, youth boost)
+3. Apply host advantage for USA/CAN/MEX
+4. Simulate each match using win probabilities
+5. Track knockout progression per team
+6. Count championship, semi-final outcomes
+        </div>
+      </div>
+      <div class="method-section">
+        <div class="method-title">Dark Horse Index (DHI)</div>
+        <div class="formula-box">
+DHI = (0.30 × ELO_overperformance)
+    + (0.25 × recent_form_score × 10)
+    + (0.20 × tactical_flexibility)
+    + (0.15 × group_difficulty_inverse)
+    + (0.10 × squad_balance)
+
+Scaled 0–100. Higher = greater upset potential
+        </div>
+      </div>
+      <div class="method-section">
+        <div class="method-title">Tactical Style Matrix</div>
+        <div class="method-body">8 tactical styles interact via a modifier grid. Example: high-pressing teams gain +0.08 vs counter-attacking sides but struggle against direct play (+0.04 for the direct team). These modifiers add realism that pure ELO cannot capture.</div>
+      </div>
+      <div class="disclaimer">
+        ⚠️ Ratings are proprietary model estimates combining publicly available FIFA and ELO data. They are not official FIFA ratings. All simulations are probabilistic forecasts. Results will vary between runs due to intentional randomness modelling real-world variance.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ DAILY PICK ═══════════════ -->
+<div id="pg-picks" class="pg">
+  <div class="hero-band">
+    <div class="hb-red"><div class="hb-red-title">Daily Pick</div><div class="hb-red-sub" style="margin-left:14px">BEST VALUE BET FROM TODAY'S MATCHES</div></div>
+    <div class="hb-pill purple"><div class="hb-num" id="pick-date-band">TODAY</div><div class="hb-lbl">PICKS</div></div>
+    <div class="hb-pill lime"><div class="hb-num">MODEL</div><div class="hb-lbl">DRIVEN</div></div>
+  </div>
+
+  <!-- Date selector + group filter -->
+  <div class="row" style="margin-bottom:16px;gap:10px;align-items:center">
+    <div style="font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.4);letter-spacing:.8px">SELECT DATE</div>
+    <select id="pick-date-sel" onchange="buildPicks()" style="min-width:180px"></select>
+    <div style="font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.4);letter-spacing:.8px;margin-left:8px">STAGE</div>
+    <select id="pick-stage-sel" onchange="buildPicks()">
+      <option value="group">Group Stage</option>
+      <option value="r32">Round of 32</option>
+      <option value="r16">Round of 16</option>
+      <option value="qf">Quarter-finals</option>
+      <option value="sf">Semi-finals</option>
+      <option value="final">Final</option>
+    </select>
+    <button class="btn btn-red" onclick="buildPicks()">▶ Generate Picks</button>
+  </div>
+
+  <!-- TOP PICK CARD -->
+  <div id="top-pick-card" style="margin-bottom:16px"></div>
+
+  <!-- ALL TODAY'S PICKS -->
+  <div id="all-picks-list"></div>
+
+  <!-- PARLAY BUILDER -->
+  <div id="parlay-section" style="margin-top:16px;display:none">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">⚡ Parlay Builder</span><span class="ph-tag tag-l">Best 3 Combined</span></div>
+      <div class="pb" id="parlay-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TEAM MODAL ═══════════════ -->
+<div class="modal-overlay" id="team-modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-inner"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA — 48 OFFICIAL WC2026 TEAMS
+// OVR = composite of FIFA Apr 2026 + ELO Jan 2026 + form
+// ═══════════════════════════════════════════════════════
+const T = [
+  // GROUP A
+  {id:'mexico',      n:'Mexico',        f:'🇲🇽',c:'CONCACAF',ovr:78,atk:77,def:76,mid:78,form:70,depth:70,exp:76,pen:64,tac:'lowblock',   style:'Defensive/Compact',     wco:1, fr:15,elo:1760,trend:'↑'},
+  {id:'southkorea',  n:'South Korea',   f:'🇰🇷',c:'AFC',     ovr:77,atk:76,def:75,mid:78,form:70,depth:65,exp:66,pen:62,tac:'transition',  style:'Dynamic/Transition',    wco:0, fr:22,elo:1790,trend:'↑'},
+  {id:'southafrica', n:'South Africa',  f:'🇿🇦',c:'CAF',     ovr:64,atk:62,def:65,mid:62,form:55,depth:55,exp:55,pen:54,tac:'transition',  style:'Transition/Direct',     wco:0, fr:60,elo:1610,trend:'→'},
+  {id:'czechia',     n:'Czechia',       f:'🇨🇿',c:'UEFA',    ovr:70,atk:69,def:70,mid:70,form:65,depth:65,exp:68,pen:64,tac:'transition',  style:'Trans/Set Pieces',      wco:0, fr:43,elo:1720,trend:'→'},
+  // GROUP B
+  {id:'canada',      n:'Canada',        f:'🇨🇦',c:'CONCACAF',ovr:74,atk:72,def:73,mid:72,form:75,depth:68,exp:55,pen:62,tac:'highpress',   style:'High Press/Counter',    wco:1, fr:30,elo:1760,trend:'↑'},
+  {id:'bosnia',      n:'Bosnia-Herz.',  f:'🇧🇦',c:'UEFA',    ovr:66,atk:66,def:64,mid:65,form:65,depth:60,exp:52,pen:58,tac:'direct',      style:'Direct/Physical',       wco:0, fr:65,elo:1660,trend:'→'},
+  {id:'qatar',       n:'Qatar',         f:'🇶🇦',c:'AFC',     ovr:68,atk:66,def:67,mid:66,form:55,depth:58,exp:55,pen:56,tac:'possession',  style:'Possession Based',      wco:0, fr:37,elo:1640,trend:'↓'},
+  {id:'switzerland', n:'Switzerland',   f:'🇨🇭',c:'UEFA',    ovr:81,atk:78,def:82,mid:80,form:75,depth:72,exp:74,pen:68,tac:'lowblock',    style:'Structured/Defensive',  wco:1, fr:19,elo:1897,trend:'↑'},
+  // GROUP C
+  {id:'brazil',      n:'Brazil',        f:'🇧🇷',c:'CONMEBOL',ovr:85,atk:87,def:82,mid:87,form:75,depth:88,exp:95,pen:78,tac:'possession',  style:'High Poss/Press',       wco:13,fr:6, elo:1979,trend:'→'},
+  {id:'morocco',     n:'Morocco',       f:'🇲🇦',c:'CAF',     ovr:82,atk:79,def:86,mid:80,form:85,depth:72,exp:72,pen:72,tac:'lowblock',    style:'Low Block/Counter',     wco:3, fr:8, elo:1820,trend:'↑'},
+  {id:'haiti',       n:'Haiti',         f:'🇭🇹',c:'CONCACAF',ovr:54,atk:53,def:53,mid:52,form:45,depth:44,exp:40,pen:48,tac:'direct',      style:'Direct/Physical',       wco:0, fr:115,elo:1450,trend:'→'},
+  {id:'scotland',    n:'Scotland',      f:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',c:'UEFA',    ovr:72,atk:70,def:73,mid:71,form:70,depth:66,exp:60,pen:62,tac:'highpress',   style:'High Energy/Press',     wco:0, fr:38,elo:1720,trend:'↑'},
+  // GROUP D
+  {id:'usa',         n:'USA',           f:'🇺🇸',c:'CONCACAF',ovr:79,atk:78,def:77,mid:77,form:75,depth:75,exp:62,pen:68,tac:'highpress',   style:'High Energy/Press',     wco:2, fr:16,elo:1810,trend:'↑'},
+  {id:'paraguay',    n:'Paraguay',      f:'🇵🇾',c:'CONMEBOL',ovr:70,atk:68,def:70,mid:68,form:65,depth:58,exp:62,pen:58,tac:'lowblock',    style:'Defensive/Counter',     wco:0, fr:40,elo:1680,trend:'→'},
+  {id:'australia',   n:'Australia',     f:'🇦🇺',c:'AFC',     ovr:73,atk:70,def:73,mid:71,form:65,depth:62,exp:60,pen:60,tac:'direct',      style:'Direct/Physical',       wco:0, fr:27,elo:1710,trend:'→'},
+  {id:'turkey',      n:'Türkiye',       f:'🇹🇷',c:'UEFA',    ovr:79,atk:78,def:76,mid:77,form:75,depth:68,exp:68,pen:66,tac:'counter',     style:'Physical/Counter',      wco:0, fr:25,elo:1880,trend:'↑'},
+  // GROUP E
+  {id:'germany',     n:'Germany',       f:'🇩🇪',c:'UEFA',    ovr:83,atk:82,def:82,mid:85,form:75,depth:86,exp:92,pen:82,tac:'highpress',   style:'Gegenpressing',         wco:7, fr:10,elo:1910,trend:'↑'},
+  {id:'curacao',     n:'Curaçao',       f:'🇨🇼',c:'CONCACAF',ovr:60,atk:59,def:57,mid:58,form:55,depth:42,exp:38,pen:48,tac:'counter',     style:'Athletic/Counter',      wco:0, fr:83,elo:1520,trend:'→'},
+  {id:'ivorycoast',  n:'Ivory Coast',   f:'🇨🇮',c:'CAF',     ovr:71,atk:73,def:67,mid:70,form:65,depth:68,exp:66,pen:62,tac:'counter',     style:'Fast Counter/Direct',   wco:0, fr:37,elo:1720,trend:'→'},
+  {id:'ecuador',     n:'Ecuador',       f:'🇪🇨',c:'CONMEBOL',ovr:80,atk:79,def:79,mid:79,form:70,depth:62,exp:60,pen:58,tac:'direct',      style:'Direct/Physical',       wco:0, fr:23,elo:1933,trend:'↑'},
+  // GROUP F
+  {id:'netherlands', n:'Netherlands',   f:'🇳🇱',c:'UEFA',    ovr:85,atk:84,def:83,mid:85,form:80,depth:80,exp:80,pen:72,tac:'possession',  style:'Attacking/Fluid',       wco:5, fr:7, elo:1959,trend:'→'},
+  {id:'japan',       n:'Japan',         f:'🇯🇵',c:'AFC',     ovr:81,atk:79,def:80,mid:82,form:80,depth:68,exp:68,pen:66,tac:'highpress',   style:'High Press/Organised',  wco:1, fr:18,elo:1879,trend:'↑'},
+  {id:'sweden',      n:'Sweden',        f:'🇸🇪',c:'UEFA',    ovr:72,atk:71,def:72,mid:71,form:70,depth:68,exp:72,pen:65,tac:'organized',   style:'Organised/Direct',      wco:0, fr:42,elo:1770,trend:'→'},
+  {id:'tunisia',     n:'Tunisia',       f:'🇹🇳',c:'CAF',     ovr:67,atk:65,def:69,mid:65,form:60,depth:58,exp:62,pen:58,tac:'lowblock',    style:'Organised/Counter',     wco:0, fr:47,elo:1650,trend:'↓'},
+  // GROUP G
+  {id:'belgium',     n:'Belgium',       f:'🇧🇪',c:'UEFA',    ovr:81,atk:82,def:78,mid:81,form:70,depth:75,exp:82,pen:70,tac:'counter',     style:'Counter/Transition',    wco:3, fr:9, elo:1849,trend:'↓'},
+  {id:'egypt',       n:'Egypt',         f:'🇪🇬',c:'CAF',     ovr:71,atk:70,def:70,mid:70,form:60,depth:60,exp:62,pen:60,tac:'counter',     style:'Counter/Individual',    wco:0, fr:31,elo:1700,trend:'→'},
+  {id:'iran',        n:'Iran',          f:'🇮🇷',c:'AFC',     ovr:76,atk:73,def:78,mid:73,form:65,depth:60,exp:65,pen:58,tac:'lowblock',    style:'Defensive/Compact',     wco:0, fr:20,elo:1740,trend:'→'},
+  {id:'newzealand',  n:'New Zealand',   f:'🇳🇿',c:'OFC',     ovr:56,atk:54,def:57,mid:54,form:50,depth:48,exp:50,pen:52,tac:'direct',      style:'Direct/Physical',       wco:0, fr:102,elo:1480,trend:'→'},
+  // GROUP H
+  {id:'spain',       n:'Spain',         f:'🇪🇸',c:'UEFA',    ovr:94,atk:93,def:90,mid:96,form:90,depth:85,exp:88,pen:75,tac:'possession',  style:'Tiki-Taka/Press',       wco:12,fr:2, elo:2171,trend:'↑'},
+  {id:'capeverde',   n:'Cape Verde',    f:'🇨🇻',c:'CAF',     ovr:65,atk:64,def:64,mid:63,form:65,depth:50,exp:48,pen:52,tac:'counter',     style:'Counter/Athletic',      wco:0, fr:64,elo:1600,trend:'↑'},
+  {id:'saudiarabia', n:'Saudi Arabia',  f:'🇸🇦',c:'AFC',     ovr:66,atk:64,def:65,mid:64,form:60,depth:58,exp:58,pen:56,tac:'counter',     style:'High Press/Counter',    wco:0, fr:56,elo:1630,trend:'↓'},
+  {id:'uruguay',     n:'Uruguay',       f:'🇺🇾',c:'CONMEBOL',ovr:81,atk:79,def:82,mid:78,form:70,depth:72,exp:82,pen:74,tac:'lowblock',    style:'Pragmatic/Physical',    wco:2, fr:17,elo:1890,trend:'→'},
+  // GROUP I
+  {id:'france',      n:'France',        f:'🇫🇷',c:'UEFA',    ovr:91,atk:92,def:87,mid:91,form:85,depth:92,exp:90,pen:80,tac:'counter',     style:'Counter/Versatile',     wco:13,fr:1, elo:2063,trend:'↑'},
+  {id:'senegal',     n:'Senegal',       f:'🇸🇳',c:'CAF',     ovr:81,atk:80,def:80,mid:78,form:80,depth:70,exp:68,pen:70,tac:'counter',     style:'Physical/Counter',      wco:1, fr:14,elo:1869,trend:'↑'},
+  {id:'iraq',        n:'Iraq',          f:'🇮🇶',c:'AFC',     ovr:65,atk:64,def:63,mid:63,form:60,depth:54,exp:52,pen:52,tac:'direct',      style:'Physical/Direct',       wco:0, fr:58,elo:1620,trend:'→'},
+  {id:'norway',      n:'Norway',        f:'🇳🇴',c:'UEFA',    ovr:78,atk:81,def:72,mid:74,form:75,depth:70,exp:62,pen:65,tac:'direct',      style:'Direct/Counter-Press',  wco:0, fr:32,elo:1922,trend:'↑'},
+  // GROUP J
+  {id:'argentina',   n:'Argentina',     f:'🇦🇷',c:'CONMEBOL',ovr:93,atk:91,def:87,mid:90,form:90,depth:82,exp:90,pen:85,tac:'counter',     style:'Counter/Transition',    wco:14,fr:3, elo:2113,trend:'↑'},
+  {id:'algeria',     n:'Algeria',       f:'🇩🇿',c:'CAF',     ovr:73,atk:72,def:72,mid:72,form:65,depth:60,exp:58,pen:56,tac:'counter',     style:'Counter/Direct',        wco:0, fr:28,elo:1720,trend:'→'},
+  {id:'austria',     n:'Austria',       f:'🇦🇹',c:'UEFA',    ovr:77,atk:76,def:74,mid:76,form:75,depth:68,exp:65,pen:65,tac:'highpress',   style:'High Press/Active',     wco:0, fr:24,elo:1820,trend:'↑'},
+  {id:'jordan',      n:'Jordan',        f:'🇯🇴',c:'AFC',     ovr:62,atk:61,def:62,mid:60,form:60,depth:50,exp:46,pen:52,tac:'lowblock',    style:'Defensive/Counter',     wco:0, fr:76,elo:1560,trend:'→'},
+  // GROUP K
+  {id:'portugal',    n:'Portugal',      f:'🇵🇹',c:'UEFA',    ovr:86,atk:88,def:80,mid:85,form:80,depth:78,exp:85,pen:78,tac:'direct',      style:'Direct/Individual',     wco:6, fr:5, elo:1976,trend:'↑'},
+  {id:'drcongo',     n:'DR Congo',      f:'🇨🇩',c:'CAF',     ovr:67,atk:67,def:65,mid:65,form:60,depth:58,exp:52,pen:54,tac:'counter',     style:'Athletic/Counter',      wco:0, fr:48,elo:1640,trend:'→'},
+  {id:'uzbekistan',  n:'Uzbekistan',    f:'🇺🇿',c:'AFC',     ovr:63,atk:62,def:62,mid:62,form:65,depth:55,exp:50,pen:54,tac:'counter',     style:'Counter/Direct',        wco:0, fr:74,elo:1580,trend:'↑'},
+  {id:'colombia',    n:'Colombia',      f:'🇨🇴',c:'CONMEBOL',ovr:84,atk:85,def:80,mid:84,form:70,depth:70,exp:72,pen:68,tac:'transition',  style:'Transition/Creative',   wco:2, fr:13,elo:1998,trend:'↑'},
+  // GROUP L
+  {id:'england',     n:'England',       f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',c:'UEFA',    ovr:89,atk:90,def:86,mid:88,form:80,depth:88,exp:75,pen:72,tac:'possession',  style:'High Press/Possession', wco:9, fr:4, elo:2042,trend:'→'},
+  {id:'croatia',     n:'Croatia',       f:'🇭🇷',c:'UEFA',    ovr:83,atk:80,def:83,mid:87,form:75,depth:72,exp:86,pen:76,tac:'midfield',    style:'Midfield Control',      wco:3, fr:11,elo:1933,trend:'↓'},
+  {id:'ghana',       n:'Ghana',         f:'🇬🇭',c:'CAF',     ovr:66,atk:67,def:63,mid:65,form:55,depth:60,exp:64,pen:56,tac:'counter',     style:'Counter/Physical',      wco:0, fr:55,elo:1640,trend:'→'},
+  {id:'panama',      n:'Panama',        f:'🇵🇦',c:'CONCACAF',ovr:69,atk:67,def:70,mid:67,form:60,depth:54,exp:55,pen:52,tac:'lowblock',    style:'Compact/Defensive',     wco:0, fr:33,elo:1630,trend:'→'},
+];
+
+
+
+const GROUPS = [
+  {id:'A',ts:['mexico','southkorea','southafrica','czechia']},
+  {id:'B',ts:['canada','bosnia','qatar','switzerland']},
+  {id:'C',ts:['brazil','morocco','haiti','scotland']},
+  {id:'D',ts:['usa','paraguay','australia','turkey']},
+  {id:'E',ts:['germany','curacao','ivorycoast','ecuador']},
+  {id:'F',ts:['netherlands','japan','sweden','tunisia']},
+  {id:'G',ts:['belgium','egypt','iran','newzealand']},
+  {id:'H',ts:['spain','capeverde','saudiarabia','uruguay']},
+  {id:'I',ts:['france','senegal','iraq','norway']},
+  {id:'J',ts:['argentina','algeria','austria','jordan']},
+  {id:'K',ts:['portugal','drcongo','uzbekistan','colombia']},
+  {id:'L',ts:['england','croatia','ghana','panama']},
+];
+
+// Compute DHI for each team
+T.forEach(t => {
+  // ELO overperformance: how much better is ELO rank vs FIFA rank (0-100 scale)
+  const allByElo  = [...T].sort((a,b)=>b.elo-a.elo);
+  const allByFifa = [...T].sort((a,b)=>a.fr-b.fr);
+  const eloRank   = allByElo.findIndex(x=>x.id===t.id)+1;
+  const fifaRank  = allByFifa.findIndex(x=>x.id===t.id)+1;
+  const eloOver   = Math.max(0, fifaRank - eloRank); // positive = ELO better than FIFA rank
+  const eloOverN  = Math.min(100, eloOver / 20 * 100); // cap at 20-place gap = 100
+
+  // Form: how good is recent form relative to the team's OVR expectation
+  const formRelative = Math.max(0, t.form - (t.ovr * 0.85)); // form above expectation
+  const formN = Math.min(100, formRelative / 15 * 100);
+
+  // Tactical flexibility (counter/transition are most dangerous underdogs)
+  const tacFlex = {counter:75,transition:80,highpress:65,possession:50,lowblock:45,midfield:60,direct:55,organized:40}[t.tac]||55;
+
+  // Group difficulty inverse: weaker group = easier path = lower DHI reward
+  const groupTeams = GROUPS.find(g=>g.ts.includes(t.id))?.ts.map(id=>T.find(x=>x.id===id)).filter(Boolean)||[];
+  const groupAvgOvr = groupTeams.length ? groupTeams.reduce((s,x)=>s+x.ovr,0)/groupTeams.length : 70;
+  const groupDiffN  = Math.min(100, Math.max(0, (groupAvgOvr - t.ovr + 20) / 40 * 100)); // harder group = higher DHI
+
+  // OVR underdog factor: lower OVR relative to top teams = more "dark horse"
+  const maxOvr = Math.max(...T.map(x=>x.ovr));
+  const underdogN = Math.max(0, (maxOvr - t.ovr) / (maxOvr - 54) * 100);
+  const underdogCapped = Math.min(60, underdogN); // very weak teams shouldn't score high DHI
+
+  t.dhi = Math.round(Math.max(0, Math.min(100,
+    0.25 * eloOverN      +  // ELO outperforms FIFA rank
+    0.20 * formN         +  // form above expectation
+    0.20 * tacFlex       +  // tactical style danger
+    0.20 * groupDiffN    +  // favorable/tough group navigation
+    0.15 * underdogCapped   // underdog factor (capped so bad teams don't score high)
+  )));
+});
+
+const TMAP={
+  highpress:{highpress:0,possession:-.05,counter:.08,lowblock:-.05,midfield:0,direct:.04,transition:.06,organized:0},
+  possession:{highpress:.05,possession:0,counter:-.04,lowblock:.06,midfield:0,direct:0,transition:-.03,organized:0},
+  counter:{highpress:-.08,possession:.04,counter:0,lowblock:0,midfield:-.04,direct:.04,transition:.04,organized:-.02},
+  lowblock:{highpress:.05,possession:-.06,counter:0,lowblock:0,midfield:-.03,direct:.02,transition:0,organized:.02},
+  midfield:{highpress:0,possession:0,counter:.04,lowblock:.03,midfield:0,direct:-.02,transition:.02,organized:0},
+  direct:{highpress:-.04,possession:0,counter:-.04,lowblock:-.02,midfield:.02,direct:0,transition:.03,organized:-.02},
+  transition:{highpress:-.06,possession:.03,counter:-.04,lowblock:0,midfield:-.02,direct:-.03,transition:0,organized:-.03},
+  organized:{highpress:0,possession:0,counter:.02,lowblock:-.02,midfield:0,direct:.02,transition:.03,organized:0}
+};
+const CC={UEFA:'#185FA5',CONMEBOL:'#1a6b3c',CONCACAF:'#854F0B',CAF:'#c8102e',AFC:'#5B2D8E',OFC:'#555'};
+
+function gt(id){return T.find(t=>t.id===id)}
+
+function mup(t1,t2,neutral=true,r1=0,r2=0){
+  const ta1=(TMAP[t1.tac]?.[t2.tac]||0)*10,ta2=(TMAP[t2.tac]?.[t1.tac]||0)*10;
+  const a1=t1.ovr+ta1+(t1.form-75)*.1+r1+(neutral?0:3);
+  const a2=t2.ovr+ta2+(t2.form-75)*.1+r2;
+  const d=a1-a2,p=1/(1+Math.pow(10,-d/15));
+  let dr=Math.max(.12,Math.min(.28,.22-Math.abs(d)*.004));
+  let w1=Math.max(.05,p-dr/2),w2=Math.max(.05,1-p-dr/2);
+  const tot=w1+dr+w2;
+  const xg1=Math.max(.3,Math.min(3.5,1+(a1-70)*.025+ta1*.05));
+  const xg2=Math.max(.3,Math.min(3.5,1+(a2-70)*.025+ta2*.05));
+  const poss1=Math.round(45+d*.6);
+  const shots1=Math.round(10+xg1*2.2),shots2=Math.round(10+xg2*2.2);
+  return{w1:w1/tot,dr:dr/tot,w2:w2/tot,xg1,xg2,cs1:Math.max(.05,.45-xg2*.12),cs2:Math.max(.05,.45-xg1*.12),ta1,ta2,poss1:Math.max(35,Math.min(65,poss1)),shots1,shots2};
+}
+function sm(t1,t2){
+  const m=mup(t1,t2),r=Math.random();
+  if(r<m.w1)return{w:t1,type:'ft'};
+  if(r<m.w1+m.dr){const pa=(t1.pen-t2.pen)/200;return Math.random()<.5+pa?{w:t1,type:'pen'}:{w:t2,type:'pen'};}
+  return{w:t2,type:'ft'};
+}
+function sg(g){
+  const teams=g.ts.map(gt).filter(Boolean);
+  const tbl=teams.map(t=>({...t,gp:0,w:0,d:0,l:0,gf:0,ga:0,gd:0,pts:0}));
+  for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
+    const m=mup(teams[i],teams[j]),r=Math.random();
+    let g1=Math.round(m.xg1*(.7+Math.random()*.6)),g2=Math.round(m.xg2*(.7+Math.random()*.6));
+    if(r<m.w1&&g1<=g2)g1=g2+1;
+    else if(r<m.w1+m.dr){if(g1>g2)g2=g1;else if(g2>g1)g1=g2;}
+    else if(g2<=g1)g2=g1+1;
+    const ti=tbl.find(t=>t.id===teams[i].id),tj=tbl.find(t=>t.id===teams[j].id);
+    ti.gp++;tj.gp++;ti.gf+=g1;ti.ga+=g2;ti.gd+=g1-g2;tj.gf+=g2;tj.ga+=g1;tj.gd+=g2-g1;
+    if(g1>g2){ti.pts+=3;ti.w++;tj.l++;}else if(g1===g2){ti.pts++;tj.pts++;ti.d++;tj.d++;}else{tj.pts+=3;tj.w++;ti.l++;}
+  }
+  tbl.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf);
+  return tbl;
+}
+
+let gRes={},rCI=null,mcCI=null,sfCI=null,confCI=null,mcCancel=false,simRadarCI=null,mcCIRef=null,sfCIRef=null;
+
+// ── NAVIGATION ──
+function go(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+id).classList.add('on');
+  if(btn)btn.classList.add('on');
+  if(id==='home')buildHome();
+  if(id==='analytics')buildAnalytics();
+  if(id==='picks')initPicksPage();
+}
+
+// ── STRENGTHS / WEAKNESSES from ratings ──
+function getSW(t){
+  const s=[],w=[];
+  if(t.atk>=87)s.push('World-class attack');else if(t.atk>=82)s.push('Elite attacking output');
+  if(t.def>=84)s.push('Exceptional defensive solidity');else if(t.def>=78)s.push('Strong defensive structure');
+  if(t.mid>=84)s.push('Elite midfield control');else if(t.mid>=78)s.push('Creative midfield');
+  if(t.pen>=80)s.push('Excellent penalty takers');
+  if(t.depth>=85)s.push('Elite squad depth');else if(t.depth>=75)s.push('Strong squad depth');
+  if(t.exp>=88)s.push('Vast tournament experience');
+  if(t.form>=80)s.push('Excellent recent form');
+  if(t.dhi>=60)s.push('High dark horse potential');
+  if(t.atk<65)w.push('Limited attacking firepower');else if(t.atk<72)w.push('Below-average attack');
+  if(t.def<65)w.push('Defensive vulnerability');else if(t.def<72)w.push('Inconsistent defence');
+  if(t.depth<55)w.push('Weak squad depth');else if(t.depth<65)w.push('Thin bench options');
+  if(t.exp<55)w.push('Inexperienced at this level');else if(t.exp<65)w.push('Limited World Cup experience');
+  if(t.form<55)w.push('Poor recent form');else if(t.form<65)w.push('Inconsistent recent results');
+  if(t.pen<55)w.push('Weak penalty record');
+  return{s:s.slice(0,3),w:w.slice(0,3)};
+}
+function getInsight(t){
+  const tacLabel={highpress:'High-pressing intensity can disrupt technical teams but leaves space on transitions.',possession:'Possession-dominant style effective against weaker opponents but can be countered by compact defences.',counter:'Elite counter-attacking speed; lethal on the break but may struggle against low blocks.',lowblock:'Disciplined defensive shape makes them hard to beat but goal threat is limited.',midfield:'Exceptional midfield control — dictate tempo and transition play.',direct:'Direct, physical approach effective in short tournaments but tactically predictable.',transition:'Dynamic in both directions; transition speed is a key weapon.',organized:'Well-organised and disciplined; frustrate opponents but lack creative spark.'}[t.tac]||'Balanced tactical approach.';
+  const atk=t.atk>=85?'World-class attacking threat.':t.atk>=78?'Above-average attack.':'Attack may struggle at this level.';
+  return`${tacLabel} ${atk}`;
+}
+
+// ── TEAM MODAL ──
+function openTeam(id){
+  const t=gt(id); if(!t)return;
+  const tot=T.reduce((s,x)=>s+x.wco,0);
+  const pct=tot>0?Math.round(t.wco/tot*100):0;
+  const sw=getSW(t);
+  const grad=t.ovr>=87?'linear-gradient(135deg,#c8102e,#8b0000)':t.ovr>=80?'linear-gradient(135deg,#5B2D8E,#3d1f63)':'linear-gradient(135deg,#333,#111)';
+  document.getElementById('modal-inner').innerHTML=`
+  <div class="modal-header">
+    <div class="modal-gradient" style="background:${grad}">
+      <div class="modal-flag">${t.f}</div>
+      <div><div class="modal-title">${t.n}</div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:1px">${t.c} &bull; FIFA #${t.fr} &bull; ELO ${t.elo}</div></div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-grid">
+      <div class="modal-stat"><div class="modal-stat-val" style="color:var(--red)">${t.ovr}</div><div class="modal-stat-lbl">Overall Rating</div></div>
+      <div class="modal-stat"><div class="modal-stat-val" style="color:var(--purple)">${t.dhi}</div><div class="modal-stat-lbl">Dark Horse Index</div></div>
+      <div class="modal-stat"><div class="modal-stat-val">${pct}%</div><div class="modal-stat-lbl">Championship Odds</div></div>
+      <div class="modal-stat"><div class="modal-stat-val">${t.trend}</div><div class="modal-stat-lbl">Form Trend</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+      ${[['ATK',t.atk,'var(--red)'],['DEF',t.def,'var(--purple)'],['MID',t.mid,'#1a6b3c'],['PEN',t.pen,'#854F0B']].map(([l,v,c])=>`<div style="text-align:center;padding:8px;background:var(--offwhite);border:1px solid var(--mid)"><div style="font-family:var(--bebas);font-size:20px;color:${c}">${v}</div><div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4);letter-spacing:.8px">${l}</div></div>`).join('')}
+    </div>
+    <canvas id="modal-radar" height="180"></canvas>
+    <div class="divider"></div>
+    <div style="margin-bottom:10px">
+      <div style="font-family:var(--bebas);font-size:12px;letter-spacing:1px;color:rgba(0,0,0,.35);margin-bottom:6px">STRENGTHS</div>
+      <div class="sw-row">${sw.s.map(x=>`<span class="sw-tag sw-s">✓ ${x}</span>`).join('')}</div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-family:var(--bebas);font-size:12px;letter-spacing:1px;color:rgba(0,0,0,.35);margin-bottom:6px">WEAKNESSES</div>
+      <div class="sw-row">${sw.w.map(x=>`<span class="sw-tag sw-w">✗ ${x}</span>`).join('')}</div>
+    </div>
+    <div class="insight-box">${getInsight(t)}</div>
+    <div style="margin-top:10px;padding:8px 10px;background:var(--offwhite);border:1px solid var(--mid);font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4);display:flex;gap:16px;flex-wrap:wrap">
+      <span>Style: <strong style="color:var(--black)">${t.style}</strong></span>
+      <span>Depth: <strong style="color:var(--black)">${t.depth}</strong></span>
+      <span>Exp: <strong style="color:var(--black)">${t.exp}</strong></span>
+      <span>Form: <strong style="color:var(--black)">${t.form}/10×10</strong></span>
+    </div>
+  </div>`;
+  document.getElementById('team-modal').classList.add('open');
+  // Draw radar after modal renders
+  requestAnimationFrame(()=>{
+    const ctx=document.getElementById('modal-radar');
+    if(!ctx)return;
+    new Chart(ctx.getContext('2d'),{type:'radar',data:{labels:['Attack','Defense','Midfield','Form','Depth','Exp','Penalties'],datasets:[{data:[t.atk,t.def,t.mid,t.form,t.depth,t.exp,t.pen],backgroundColor:'rgba(232,25,44,.12)',borderColor:t.ovr>=87?'#E8192C':'#5B2D8E',pointBackgroundColor:t.ovr>=87?'#E8192C':'#5B2D8E',borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:40,max:100,grid:{color:'rgba(0,0,0,.07)'},ticks:{display:false},pointLabels:{font:{size:9},color:'#888'}}}}});
+  });
+}
+function closeModal(e){if(!e||e.target===document.getElementById('team-modal'))document.getElementById('team-modal').classList.remove('open');}
+
+// ── HOME ──
+function buildHome(){
+  // Insight cards
+  const sorted=[...T].sort((a,b)=>b.wco-a.wco);
+  const champ=sorted[0];
+  const tot=T.reduce((s,t)=>s+t.wco,0);
+  const champPct=Math.round(champ.wco/tot*100);
+  // Dark horse: high DHI, lower OVR
+  const dh=[...T].filter(t=>t.ovr<85).sort((a,b)=>b.dhi-a.dhi)[0];
+  // Group of death: highest avg OVR
+  const godGroup=GROUPS.map(g=>{
+    const ts=g.ts.map(gt).filter(Boolean);
+    const avgOvr=ts.reduce((s,t)=>s+t.ovr,0)/ts.length;
+    const variance=ts.reduce((s,t)=>s+Math.pow(t.ovr-avgOvr,2),0)/ts.length;
+    return{...g,avgOvr,variance,ts};
+  }).sort((a,b)=>b.avgOvr-a.avgOvr)[0];
+
+  document.getElementById('home-topteam').textContent=champ.f;
+
+  document.getElementById('insight-cards').innerHTML=`
+  <div class="ic" style="border-top:3px solid var(--red)">
+    <div class="ic-header" style="background:rgba(232,25,44,.04)">
+      <div>
+        <div class="ic-kicker" style="color:var(--red)">🏆 Most Likely Champion</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ic-flag">${champ.f}</div>
+          <div class="ic-name">${champ.n}</div>
+        </div>
+      </div>
+    </div>
+    <div class="ic-body">
+      <div class="ic-big" style="color:var(--red)">${champPct}%</div>
+      <div class="ic-desc">Championship probability &bull; FIFA #${champ.fr} &bull; OVR ${champ.ovr}<br>${getInsight(champ).split('.')[0]}.</div>
+      <div class="ic-bar"><div class="ic-bar-fill" style="width:${Math.min(100,champPct*4)}%;background:var(--red)"></div></div>
+    </div>
+  </div>
+  <div class="ic" style="border-top:3px solid var(--purple)">
+    <div class="ic-header" style="background:rgba(91,45,142,.05)">
+      <div>
+        <div class="ic-kicker" style="color:var(--purple)">🎯 Best Dark Horse</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ic-flag">${dh.f}</div>
+          <div class="ic-name">${dh.n}</div>
+        </div>
+      </div>
+    </div>
+    <div class="ic-body">
+      <div class="ic-big" style="color:var(--purple)">${dh.dhi}<span style="font-family:var(--mono);font-size:14px;font-weight:400"> DHI</span></div>
+      <div class="ic-desc">Dark Horse Index &bull; FIFA #${dh.fr} &bull; ELO ${dh.elo}<br>High form + tactical flexibility = upset threat.</div>
+      <div class="ic-bar"><div class="ic-bar-fill" style="width:${dh.dhi}%;background:var(--purple)"></div></div>
+    </div>
+  </div>
+  <div class="ic" style="border-top:3px solid var(--lime)">
+    <div class="ic-header" style="background:rgba(200,230,0,.1)">
+      <div>
+        <div class="ic-kicker" style="color:#5a6200">⚔️ Group of Death</div>
+        <div style="font-family:var(--bebas);font-size:20px;letter-spacing:1px">Group ${godGroup.id}</div>
+      </div>
+    </div>
+    <div class="ic-body">
+      <div style="font-size:22px;margin-bottom:6px">${godGroup.ts.map(t=>t.f).join(' ')}</div>
+      <div class="ic-big" style="color:#5a6200">${godGroup.avgOvr.toFixed(1)}<span style="font-family:var(--mono);font-size:14px;font-weight:400"> avg OVR</span></div>
+      <div class="ic-desc">${godGroup.ts.map(t=>t.n).join(' · ')}<br>Tightest avg ELO — minimal margin for error.</div>
+      <div class="ic-bar"><div class="ic-bar-fill" style="width:${Math.round((godGroup.avgOvr-60)/35*100)}%;background:var(--lime)"></div></div>
+    </div>
+  </div>`;
+
+  // Odds list
+  const topOdds=[...T].filter(t=>t.wco>0).sort((a,b)=>b.wco-a.wco).slice(0,10);
+  document.getElementById('odds-list').innerHTML=topOdds.map(t=>{
+    const p=Math.round(t.wco/tot*100);
+    return`<div class="odds-row" onclick="openTeam('${t.id}')"><span style="font-size:15px;width:22px">${t.f}</span><span class="odds-name">${t.n}</span><div class="odds-track"><div class="odds-fill" style="width:${Math.min(100,p*5)}%"></div></div><span class="odds-pct">${p}%</span></div>`;
+  }).join('');
+
+  // Top 5
+  const top5=[...T].sort((a,b)=>b.ovr-a.ovr).slice(0,5);
+  document.getElementById('top5').innerHTML=top5.map((t,i)=>`
+  <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:${i===4?'none':'1px solid var(--mid)'};cursor:pointer;transition:.1s" onclick="openTeam('${t.id}')" onmouseenter="this.style.background='var(--offwhite)'" onmouseleave="this.style.background='#fff'">
+    <span style="font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.3);width:16px">${i+1}</span>
+    <span style="font-size:15px">${t.f}</span>
+    <span style="font-weight:600;font-size:12px;flex:1">${t.n}</span>
+    <span style="font-family:var(--mono);font-size:9px;color:${CC[t.c]||'#888'}">${t.c}</span>
+    <span class="${t.ovr>=90?'rtg-a':t.ovr>=82?'rtg-b':'rtg-c'}">${t.ovr}</span>
+  </div>`).join('');
+
+  // Conf chart
+  const cg={};T.forEach(t=>{if(!cg[t.c])cg[t.c]=[];cg[t.c].push(t.ovr);});
+  const labs=Object.keys(cg),avgs=labs.map(c=>+(cg[c].reduce((s,v)=>s+v,0)/cg[c].length).toFixed(1));
+  if(confCI)confCI.destroy();
+  confCI=new Chart(document.getElementById('confChart').getContext('2d'),{type:'bar',data:{labels:labs,datasets:[{data:avgs,backgroundColor:labs.map(c=>CC[c]||'#888'),borderRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#888',font:{size:10}}},y:{min:55,max:95,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#888',font:{size:10}}}}}});
+}
+
+// ── RANKINGS ──
+function renderRankings(list){
+  document.getElementById('rank-body').innerHTML=list.map((t,i)=>`
+  <tr onclick="openTeam('${t.id}')">
+    <td><span class="rank-n">${i+1}</span></td>
+    <td><div style="display:flex;align-items:center;gap:7px"><span style="font-size:14px">${t.f}</span><strong>${t.n}</strong> <span style="${t.trend==='↑'?'color:#1a6b3c':t.trend==='↓'?'color:var(--red)':'color:rgba(0,0,0,.3)'}" style="font-size:10px">${t.trend}</span></div></td>
+    <td><span class="conf-badge" style="border-color:${CC[t.c]}55;color:${CC[t.c]}">${t.c}</span></td>
+    <td class="r"><strong class="${t.ovr>=90?'rtg-a':t.ovr>=82?'rtg-b':'rtg-c'}">${t.ovr}</strong></td>
+    <td class="r" style="color:rgba(0,0,0,.5)">${t.fr}</td>
+    <td class="r" style="color:rgba(0,0,0,.5)">${t.elo}</td>
+    <td class="r">${t.atk}</td><td class="r">${t.def}</td><td class="r">${t.mid}</td>
+    <td class="r"><span class="dhi-badge" style="background:rgba(91,45,142,${t.dhi/200});color:${t.dhi>=60?'var(--purple)':'rgba(0,0,0,.4)'}">${t.dhi}</span></td>
+    <td style="font-size:10px;color:rgba(0,0,0,.4)">${t.style}</td>
+  </tr>`).join('');
+}
+function srt(k){renderRankings([...T].sort((a,b)=>b[k]-a[k]))}
+function srtAsc(k){renderRankings([...T].sort((a,b)=>a[k]-b[k]))}
+function flt(c){renderRankings(c?[...T].filter(t=>t.c===c).sort((a,b)=>b.ovr-a.ovr):[...T].sort((a,b)=>b.ovr-a.ovr))}
+
+// ── GROUPS ──
+function renderGroupGrid(res){
+  document.getElementById('g-grid').innerHTML=GROUPS.map(g=>{
+    const r=res[g.id];
+    const tbl=r||g.ts.map(id=>{const t=gt(id);return t?{...t,gp:0,pts:'—',w:'—',d:'—',l:'—',gf:'—',ga:'—',gd:'—'}:null}).filter(Boolean);
+    return`<div class="group-block">
+      <div class="group-head" style="background:var(--black);padding:7px 12px">
+        <span style="font-family:var(--bebas);font-size:14px;letter-spacing:2px;color:#fff">GROUP ${g.id}</span>
+        ${r?`<span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.35);margin-left:auto">SIMULATED</span>`:''}
+      </div>
+      <table class="gt"><thead><tr><th>Nation</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+      <tbody>${tbl.map((t,i)=>`<tr class="${r&&i<2?'q1':''}" onclick="openTeam('${t.id}')">
+        <td>${t.f} ${t.n}</td>
+        <td>${r?t.gp:'—'}</td><td>${r?t.w:'—'}</td><td>${r?t.d:'—'}</td><td>${r?t.l:'—'}</td>
+        <td>${r?t.gd:'—'}</td><td><strong>${t.pts}</strong></td>
+      </tr>`).join('')}</tbody></table>
+    </div>`;
+  }).join('');
+
+  // Third place panel
+  if(Object.keys(res).length===12){
+    const thirds=GROUPS.map(g=>{const r=res[g.id];return r?{...r[2],groupId:g.id}:null}).filter(Boolean);
+    thirds.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf);
+    const q3=thirds.slice(0,8);
+    document.getElementById('third-place-panel').style.display='block';
+    document.getElementById('third-place-panel').innerHTML=`
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Best 8 Third-Place Qualifiers</span><span class="ph-tag tag-p">WC2026 Format</span></div>
+      <div class="pb" style="padding:10px 14px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+          ${q3.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(91,45,142,.05);border:1px solid rgba(91,45,142,.2);cursor:pointer" onclick="openTeam('${t.id}')">
+            <span style="font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.3)">${i+1}</span>
+            <span style="font-size:14px">${t.f}</span>
+            <span style="font-size:11px;font-weight:600;flex:1">${t.n}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--purple);font-weight:600">${t.pts}pts</span>
+            <span style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4)">Grp ${t.groupId}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+}
+function simGroups(){
+  GROUPS.forEach(g=>{gRes[g.id]=sg(g);});
+  renderGroupGrid(gRes);
+  document.getElementById('g-status').textContent='All 12 groups simulated — 32 qualifiers determined (24 top-2 + 8 best 3rd)';
+}
+function resetGroups(){gRes={};renderGroupGrid({});document.getElementById('third-place-panel').style.display='none';document.getElementById('g-status').textContent='';}
+
+// ── SELECTS ──
+function fillSelects(){
+  const sorted=[...T].sort((a,b)=>a.n.localeCompare(b.n));
+  const opts=sorted.map(t=>`<option value="${t.id}">${t.f} ${t.n}</option>`).join('');
+  ['t1','t2','c1','c2'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— Select —</option>'+opts;});
+}
+
+// ── MATCH SIM ──
+function getCommentary(t1,t2,m){
+  const favName=m.w1>m.w2?t1.n:t2.n;
+  const dogName=m.w1>m.w2?t2.n:t1.n;
+  const favW=Math.round(Math.max(m.w1,m.w2)*100);
+  const drawPct=Math.round(m.dr*100);
+  const tacDesc={highpress:'high-pressing intensity',possession:'possession dominance',counter:'counter-attacking speed',lowblock:'defensive compactness',midfield:'midfield control',direct:'direct physicality',transition:'transitional dynamism',organized:'organised structure'};
+  return`${favName} enter as ${favW<55?'slight':'clear'} favourites at ${favW}% win probability, backed by their ${tacDesc[favW===Math.round(m.w1*100)?t1.tac:t2.tac]||'tactical approach'}. ${dogName}'s ${tacDesc[favW===Math.round(m.w1*100)?t2.tac:t1.tac]||'style'} keeps the upset probability at ${100-favW-drawPct}% — ${drawPct}% draw probability reflects a genuinely competitive fixture.`;
+}
+
+function doSim(){
+  const id1=document.getElementById('t1').value,id2=document.getElementById('t2').value;
+  const neutral=document.getElementById('en').value=='1';
+  const heat=+document.getElementById('et').value,r1=+document.getElementById('er1').value,r2=+document.getElementById('er2').value;
+  document.getElementById('en-v').textContent=neutral?'Yes':'No';
+  document.getElementById('et-v').textContent=heat+'°C';
+  document.getElementById('er1-v').textContent=r1;
+  document.getElementById('er2-v').textContent=r2;
+  if(!id1||!id2||id1===id2)return;
+  const t1=gt(id1),t2=gt(id2);
+  const rb1=r1>4?1:r1<3?-2:0,rb2=r2>4?1:r2<3?-2:0,hp=heat>30?(heat-30)*.1:0;
+  const m=mup(t1,t2,neutral,rb1,rb2);
+  let pens=0,et=0;
+  for(let i=0;i<1000;i++){const r=Math.random();if(r>m.w1&&r<m.w1+m.dr){et++;if(Math.random()<0.55)pens++;}}
+  const etPct=Math.round(et/10),penPct=Math.round(pens/10),upsetPct=Math.round((m.w1<m.w2?m.w1:m.w2)*100);
+
+  document.getElementById('sim-result').innerHTML=`
+  <div class="panel">
+    <div class="match-top">
+      <div class="mt-team"><div class="mt-flag">${t1.f}</div><div class="mt-name">${t1.n}</div><div class="mt-style">${t1.style}</div></div>
+      <div class="mt-vs">VS</div>
+      <div class="mt-team" style="text-align:right;align-items:flex-end"><div class="mt-flag">${t2.f}</div><div class="mt-name">${t2.n}</div><div class="mt-style">${t2.style}</div></div>
+    </div>
+    <div class="prob-strip">
+      <div class="ps-cell"><div class="ps-big" style="color:var(--red)">${Math.round(m.w1*100)}%</div><div class="ps-lbl">${t1.n} Win</div></div>
+      <div class="ps-cell"><div class="ps-big" style="color:var(--purple)">${Math.round(m.dr*100)}%</div><div class="ps-lbl">Draw</div></div>
+      <div class="ps-cell"><div class="ps-big" style="color:#333">${Math.round(m.w2*100)}%</div><div class="ps-lbl">${t2.n} Win</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--mid)">
+      ${[{l:'xG '+t1.n,v:m.xg1.toFixed(2),c:'var(--red)'},{l:'xG '+t2.n,v:m.xg2.toFixed(2),c:'var(--purple)'},{l:'Poss A',v:m.poss1+'%',c:'var(--black)'},{l:'Upset %',v:upsetPct+'%',c:'#854F0B'},{l:'Extra Time',v:etPct+'%',c:'#1a6b3c'},{l:'Pens',v:penPct+'%',c:penPct>20?'var(--red)':'rgba(0,0,0,.6)'}].map((x,i)=>`
+        <div style="padding:10px 8px;text-align:center;border-right:${i<5?'1px solid var(--mid)':'none'}">
+          <div class="xgc" style="color:${x.c};font-size:20px">${x.v}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4);margin-top:2px;letter-spacing:.5px">${x.l}</div>
+        </div>`).join('')}
+    </div>
+    <div class="commentary">${getCommentary(t1,t2,m)}</div>
+    <div style="padding:8px 14px;font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4);display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--mid)">
+      <span>Heat mod: <strong>${hp>0?'-'+hp.toFixed(1):'none'}</strong></span>
+      <span>Clean sheet A: <strong>${Math.round(m.cs1*100)}%</strong></span>
+      <span>Clean sheet B: <strong>${Math.round(m.cs2*100)}%</strong></span>
+      <span>Tactical edge: <strong style="color:var(--red)">${m.ta1>0?t1.n:m.ta2>0?t2.n:'Neutral'}</strong></span>
+    </div>
+  </div>`;
+  document.getElementById('sim-lower').style.display='grid';
+
+  const attrs=[['atk','Attack'],['def','Defense'],['mid','Midfield'],['form','Form'],['depth','Depth'],['exp','Experience']];
+  document.getElementById('attr-panel').innerHTML=attrs.map(([k,lbl])=>{
+    const v1=t1[k],v2=t2[k],mx=Math.max(v1,v2);
+    return`<div class="attr-row"><span class="av" style="color:${v1>v2?'var(--red)':'rgba(0,0,0,.4)'}">${v1}</span><div><div class="abar"><div class="ab-l" style="width:${Math.round(v1/mx*90)}%"></div></div></div><span class="albl">${lbl}</span><div><div class="abar"><div class="ab-r" style="width:${Math.round(v2/mx*90)}%"></div></div></div><span class="av2" style="color:${v2>v1?'var(--purple)':'rgba(0,0,0,.4)'}">${v2}</span></div>`;
+  }).join('');
+
+  if(simRadarCI)simRadarCI.destroy();
+  simRadarCI=new Chart(document.getElementById('sim-radar').getContext('2d'),{type:'radar',data:{labels:['Attack','Defense','Midfield','Form','Depth','Exp','Pens'],datasets:[{label:t1.n,data:[t1.atk,t1.def,t1.mid,t1.form,t1.depth,t1.exp,t1.pen],backgroundColor:'rgba(232,25,44,.1)',borderColor:'#E8192C',pointBackgroundColor:'#E8192C',borderWidth:2,pointRadius:3},{label:t2.n,data:[t2.atk,t2.def,t2.mid,t2.form,t2.depth,t2.exp,t2.pen],backgroundColor:'rgba(91,45,142,.1)',borderColor:'#5B2D8E',pointBackgroundColor:'#5B2D8E',borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:'#333',boxWidth:8,padding:10}}},scales:{r:{min:40,max:100,grid:{color:'rgba(0,0,0,.07)'},ticks:{display:false},pointLabels:{font:{size:9},color:'#888'}}}}});
+}
+
+// ── BRACKET ──
+function runBracket(){
+  const hasGroups=Object.keys(gRes).length===12;
+  let pool;
+  if(hasGroups){
+    pool=[];
+    GROUPS.forEach(g=>{const tbl=gRes[g.id];pool.push(tbl[0],tbl[1]);});
+    // Add best 8 thirds
+    const thirds=GROUPS.map(g=>gRes[g.id][2]).filter(Boolean);
+    thirds.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf);
+    pool.push(...thirds.slice(0,8));
+    document.getElementById('bracket-src').textContent='Using group qualifiers: 24 top-2 + 8 best 3rd place';
+  } else {
+    pool=[...T].sort((a,b)=>b.ovr-a.ovr).slice(0,32);
+    document.getElementById('bracket-src').textContent='Seeded by OVR — simulate Groups first for real qualifiers';
+  }
+  while(pool.length<32)pool.push(null);
+  let rem=[...pool.slice(0,32)];
+  const rounds=[],rnames=['Round of 32','Round of 16','Quarter-finals','Semi-finals','Final'];
+  while(rem.length>1){
+    const rd=[],nx=[];
+    for(let i=0;i<rem.length;i+=2){
+      const a=rem[i],b=rem[i+1];
+      if(!a&&!b)continue;
+      if(!b){rd.push({a,b:null,w:a});nx.push(a);continue;}
+      if(!a){rd.push({a:b,b:null,w:b});nx.push(b);continue;}
+      const r=sm(a,b);rd.push({a,b,w:r.w,type:r.type});nx.push(r.w);
+    }
+    if(rd.length)rounds.push(rd);rem=nx;
+  }
+  const ch=rem[0];
+  document.getElementById('champ-bar').style.display='flex';
+  document.getElementById('champ-bar').innerHTML=`<div class="champ-bar"><div class="cb-red">${ch.f}</div><div class="cb-purple"></div><div class="cb-lime"></div><div class="cb-body"><div class="cb-info"><div class="cb-label">SIMULATED CHAMPION</div><div class="cb-name">${ch.n}</div></div><div class="cb-rtg">${ch.ovr}</div></div></div>`;
+  document.getElementById('bracket').innerHTML=rounds.map((rd,ri)=>`<div class="b-round"><div class="b-rh">${rnames[ri]||'Round'}</div><div class="b-ms">${rd.map(m=>`<div class="b-match" onclick="${m.a?`openTeam('${m.a.id}')`:''}">${m.b?`<div class="b-team ${m.w.id===m.a.id?'win':'lose'}"><span>${m.a.f} ${m.a.n.split(' ')[0]}</span><span style="font-family:var(--mono);font-size:9px;color:var(--red)">${m.w.id===m.a.id?'✓':''}</span></div><div class="b-team ${m.w.id===m.b.id?'win':'lose'}"><span>${m.b.f} ${m.b.n.split(' ')[0]}</span><span style="font-family:var(--mono);font-size:9px;color:var(--red)">${m.w.id===m.b.id?'✓':''}</span></div>${m.type==='pen'?'<div class="b-pen">pens</div>':''}`:`<div class="b-team win">${m.a?m.a.f+' '+m.a.n.split(' ')[0]:'BYE'}</div><div class="b-team lose" style="font-size:9px">BYE</div>`}</div>`).join('')}</div></div>`).join('');
+}
+function resetBracket(){document.getElementById('champ-bar').style.display='none';document.getElementById('bracket').innerHTML='';document.getElementById('bracket-src').textContent='';}
+
+// ── COMPARE ──
+function runCompare(){
+  const id1=document.getElementById('c1').value,id2=document.getElementById('c2').value;
+  if(!id1||!id2||id1===id2)return;
+  const t1=gt(id1),t2=gt(id2),m=mup(t1,t2);
+  const keys=[['ovr','Overall'],['atk','Attack'],['def','Defense'],['mid','Midfield'],['form','Form'],['depth','Depth'],['exp','Experience'],['pen','Penalties'],['dhi','Dark Horse Idx']];
+  document.getElementById('cmp-panel').innerHTML=`<div class="g2">
+    <div class="panel"><div class="ph"><span class="ph-title">Head-to-Head</span></div><div class="pb">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="text-align:center;padding:14px;background:var(--offwhite);border:1.5px solid var(--red);cursor:pointer" onclick="openTeam('${t1.id}')">
+          <div style="font-size:28px;margin-bottom:4px">${t1.f}</div>
+          <div style="font-family:var(--bebas);font-size:16px;letter-spacing:1px">${t1.n}</div>
+          <div style="font-family:var(--bebas);font-size:32px;color:var(--red)">${Math.round(m.w1*100)}%</div>
+          <div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4)">WIN PROBABILITY</div>
+          <div style="font-family:var(--bebas);font-size:18px;color:var(--purple);margin-top:4px">${m.xg1.toFixed(2)} xG</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:var(--offwhite);border:1.5px solid var(--purple);cursor:pointer" onclick="openTeam('${t2.id}')">
+          <div style="font-size:28px;margin-bottom:4px">${t2.f}</div>
+          <div style="font-family:var(--bebas);font-size:16px;letter-spacing:1px">${t2.n}</div>
+          <div style="font-family:var(--bebas);font-size:32px;color:var(--purple)">${Math.round(m.w2*100)}%</div>
+          <div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4)">WIN PROBABILITY</div>
+          <div style="font-family:var(--bebas);font-size:18px;color:var(--red);margin-top:4px">${m.xg2.toFixed(2)} xG</div>
+        </div>
+      </div>
+      <div style="background:var(--lime);padding:10px;text-align:center;margin-bottom:10px">
+        <span style="font-family:var(--bebas);font-size:20px">${Math.round(m.dr*100)}%</span>
+        <span style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.5);margin-left:6px">DRAW</span>
+      </div>
+      <div class="commentary">${getCommentary(t1,t2,m)}</div>
+    </div></div>
+    <div class="panel"><div class="ph"><span class="ph-title">Attribute Matrix</span></div>
+      <table class="rtable"><thead><tr><th>Metric</th><th class="r">${t1.n}</th><th class="r">${t2.n}</th><th class="r">Edge</th></tr></thead>
+      <tbody>${keys.map(([k,lbl])=>{const v1=t1[k],v2=t2[k];const edge=v1>v2?t1.n:v2>v1?t2.n:'—';const col=v1>v2?'var(--red)':v2>v1?'var(--purple)':'rgba(0,0,0,.3)';
+        return`<tr onclick="openTeam('${v1>v2?t1.id:t2.id}')"><td style="font-size:11px;color:rgba(0,0,0,.5)">${lbl}</td><td class="r" style="font-weight:${v1>v2?700:400};color:${v1>v2?'var(--red)':'inherit'}">${v1}</td><td class="r" style="font-weight:${v2>v1?700:400};color:${v2>v1?'var(--purple)':'inherit'}">${v2}</td><td class="r" style="font-size:10px;font-family:var(--bebas);letter-spacing:.5px;color:${col}">${edge}</td></tr>`;
+      }).join('')}</tbody></table>
+    </div>
+  </div>`;
+}
+
+// ── TRUE ASYNC MONTE CARLO (up to 50K) ──
+
+function cancelMC(){
+  mcCancel=true;
+  document.getElementById('mc-cancel-btn').style.display='none';
+  document.getElementById('mc-run-btn').textContent='▶ Run Monte Carlo';
+  document.getElementById('mc-progress-wrap').style.display='none';
+}
+
+function runMC(){
+  const n=parseInt(document.getElementById('mc-n').value);
+  const upset=parseInt(document.getElementById('mc-u').value)/100;
+  const home=parseInt(document.getElementById('mc-h').value);
+  const inj=document.getElementById('mc-inj').checked,age=document.getElementById('mc-age').checked,yth=document.getElementById('mc-yth').checked;
+  mcCancel=false;
+  document.getElementById('mc-run-btn').textContent='Running…';
+  document.getElementById('mc-cancel-btn').style.display='inline-block';
+  document.getElementById('mc-progress-wrap').style.display='block';
+  document.getElementById('mc-progress-fill').style.width='0%';
+  document.getElementById('mc-progress-text').textContent='Initialising…';
+
+  const champs={},semis={};
+  T.forEach(t=>{champs[t.id]=0;semis[t.id]=0;});
+  const base=[...T].sort((a,b)=>b.ovr-a.ovr).slice(0,32);
+  const CHUNK=500;
+  let done=0;
+  const startTime=Date.now();
+
+  function runChunk(){
+    if(mcCancel){finishMC(champs,semis,done);return;}
+    const end=Math.min(done+CHUNK,n);
+    for(let s=done;s<end;s++){
+      let p=base.map(t=>{
+        let r=t.ovr;
+        if(inj&&Math.random()<.08)r-=Math.floor(Math.random()*6);
+        if(age&&t.exp>85)r-=Math.floor(Math.random()*4);
+        if(yth&&t.exp<60)r+=Math.floor(Math.random()*4);
+        if(['usa','canada','mexico'].includes(t.id))r+=home/3;
+        r+=(Math.random()-.5)*upset*20;
+        return{...t,sr:r};
+      }).sort(()=>Math.random()-.5);
+      p.slice(0,4).forEach(t=>semis[t.id]=(semis[t.id]||0)+1);
+      while(p.length>1){
+        const nx=[];
+        for(let i=0;i<p.length;i+=2){
+          const a=p[i],b=p[i+1];
+          if(!b){nx.push(a);continue;}
+          const d=(a.sr||a.ovr)-(b.sr||b.ovr);
+          nx.push(Math.random()<1/(1+Math.pow(10,-d/15))?a:b);
+        }
+        p=nx;
+      }
+      if(p[0])champs[p[0].id]=(champs[p[0].id]||0)+1;
+    }
+    done=end;
+    const pct=Math.round(done/n*100);
+    const elapsed=(Date.now()-startTime)/1000;
+    const rate=done/elapsed;
+    const eta=Math.max(0,Math.round((n-done)/rate));
+    document.getElementById('mc-progress-fill').style.width=pct+'%';
+    document.getElementById('mc-progress-text').textContent=`Running ${done.toLocaleString()} / ${n.toLocaleString()} simulations…`;
+    document.getElementById('mc-eta').textContent=done<n?`~${eta}s remaining`:'Complete';
+    if(done<n)requestAnimationFrame(runChunk);
+    else finishMC(champs,semis,n);
+  }
+  requestAnimationFrame(runChunk);
+}
+
+function finishMC(champs,semis,n){
+  document.getElementById('mc-cancel-btn').style.display='none';
+  document.getElementById('mc-run-btn').textContent='▶ Run Monte Carlo';
+  document.getElementById('mc-progress-text').textContent=`✓ ${n.toLocaleString()} simulations complete`;
+  const tc=Object.entries(champs).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,c])=>({t:gt(id),p:+(c/n*100).toFixed(1)})).filter(x=>x.t);
+  const ts=Object.entries(semis).sort((a,b)=>b[1]-a[1]).slice(0,16).map(([id,c])=>({t:gt(id),p:+(c/n*100).toFixed(1)})).filter(x=>x.t);
+  if(mcCIRef)mcCIRef.destroy();
+  mcCIRef=new Chart(document.getElementById('mc-chart').getContext('2d'),{type:'bar',data:{labels:tc.map(x=>x.t.n),datasets:[{data:tc.map(x=>x.p),backgroundColor:tc.map((_,i)=>i===0?'#E8192C':i===1?'#5B2D8E':i===2?'#C8E600':'#D4D2C8'),borderRadius:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toFixed(1)+'%'}}},scales:{x:{max:Math.max(...tc.map(x=>x.p))*1.25,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#888',font:{size:10},callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:'#111',font:{size:11,weight:'600'}}}}}});
+  if(sfCIRef)sfCIRef.destroy();
+  sfCIRef=new Chart(document.getElementById('sf-chart').getContext('2d'),{type:'bar',data:{labels:ts.map(x=>x.t.f+' '+x.t.n.split(' ')[0]),datasets:[{data:ts.map(x=>x.p),backgroundColor:'#E8192C',borderRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#888',font:{size:9},maxRotation:32}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#888',font:{size:9},callback:v=>v+'%'}}}}});
+}
+
+// ── ANALYTICS PAGE ──
+function buildAnalytics(){
+  const byOvr=[...T].sort((a,b)=>b.ovr-a.ovr);
+  const byAtk=[...T].sort((a,b)=>b.atk-a.atk);
+  const byDef=[...T].sort((a,b)=>b.def-a.def);
+  const byDhi=[...T].sort((a,b)=>b.dhi-a.dhi);
+  // Most overrated: high FIFA rank but relatively lower OVR composite
+  const overrated=[...T].filter(t=>t.fr<=30).sort((a,b)=>(a.ovr-a.fr)-(b.ovr-b.fr))[0];
+  // Most underrated: high OVR but lower FIFA rank
+  const underrated=[...T].filter(t=>t.fr>20).sort((a,b)=>(b.ovr+b.dhi)-(a.ovr+a.dhi))[0];
+  // Most balanced: smallest std dev across atk/def/mid
+  const balanced=[...T].sort((a,b)=>{
+    const sdA=Math.sqrt([(a.atk-a.mid)**2,(a.def-a.mid)**2,(a.atk-a.def)**2].reduce((s,v)=>s+v,0)/3);
+    const sdB=Math.sqrt([(b.atk-b.mid)**2,(b.def-b.mid)**2,(b.atk-b.def)**2].reduce((s,v)=>s+v,0)/3);
+    return sdA-sdB;
+  })[0];
+
+  document.getElementById('analytics-content').innerHTML=`
+  <div class="g4" style="margin-bottom:14px">
+    ${[['🔴 Most Overrated',overrated,overrated.fr,'FIFA rank vs model'],['🟣 Biggest Dark Horse',byDhi[0],byDhi[0].dhi,'Dark Horse Index'],['⚡ Best Attack',byAtk[0],byAtk[0].atk,'ATK rating'],['🛡️ Best Defense',byDef[0],byDef[0].def,'DEF rating']].map(([t,team,val,lbl])=>`
+    <div class="analytics-card" style="cursor:pointer" onclick="openTeam('${team.id}')">
+      <div style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.35);letter-spacing:.8px;margin-bottom:8px">${t}</div>
+      <div style="font-size:22px;margin-bottom:4px">${team.f}</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">${team.n}</div>
+      <div class="ac-val" style="color:var(--red)">${val}</div>
+      <div class="ac-lbl">${lbl}</div>
+    </div>`).join('')}
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Dark Horse Leaderboard</span><span class="ph-tag tag-p">Top 10 DHI</span></div>
+      <table class="rtable">
+        <thead><tr><th>#</th><th>Nation</th><th class="r">DHI</th><th class="r">OVR</th><th class="r">FIFA#</th><th class="r">ELO</th></tr></thead>
+        <tbody>${byDhi.slice(0,10).map((t,i)=>`<tr onclick="openTeam('${t.id}')">
+          <td><span class="rank-n">${i+1}</span></td>
+          <td><span style="font-size:13px">${t.f}</span> <strong>${t.n}</strong></td>
+          <td class="r"><span class="dhi-badge" style="background:rgba(91,45,142,${t.dhi/120});color:var(--purple)">${t.dhi}</span></td>
+          <td class="r">${t.ovr}</td>
+          <td class="r">${t.fr}</td>
+          <td class="r">${t.elo}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Team Spotlights</span></div>
+      <div class="pb">
+        ${[['Most Balanced Squad',balanced,'Smallest gap between ATK/DEF/MID'],['Most Underrated',underrated,'High OVR relative to FIFA rank'],['Highest Form',T.slice().sort((a,b)=>b.form-a.form)[0],'Best recent results']].map(([label,team,desc])=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--mid);cursor:pointer" onclick="openTeam('${team.id}')">
+          <div>
+            <div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.35);letter-spacing:1px;text-transform:uppercase">${label}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+              <span style="font-size:16px">${team.f}</span>
+              <strong style="font-size:13px">${team.n}</strong>
+            </div>
+            <div style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4);margin-top:2px">${desc}</div>
+          </div>
+          <span class="${team.ovr>=87?'rtg-a':team.ovr>=80?'rtg-b':'rtg-c'}" style="margin-left:auto">${team.ovr}</span>
+        </div>`).join('')}
+        <div style="padding-top:10px">
+          <div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.35);letter-spacing:1px;margin-bottom:8px">FORM TRENDS</div>
+          ${T.filter(t=>t.trend!=='→').slice(0,6).map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--mid);cursor:pointer;font-size:11px" onclick="openTeam('${t.id}')">
+            <span>${t.f}</span><span style="flex:1">${t.n}</span>
+            <span style="${t.trend==='↑'?'color:#1a6b3c;font-weight:700':'color:var(--red);font-weight:700'}">${t.trend} ${t.trend==='↑'?'Improving':'Declining'}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── INIT ──
+
+
+// ═══════════════════════════════════════════════════════
+// DAILY PICK ENGINE
+// ═══════════════════════════════════════════════════════
+
+// Full WC2026 group stage schedule (June 11 – July 2 sample)
+// Format: {date, groupId, home, away}
+const SCHEDULE = [
+  // ── GROUP STAGE MATCHDAY 1 ──────────────────────────────────
+  // Thu Jun 11
+  {date:'2026-06-11',stage:'group',groupId:'A',home:'mexico',    away:'southafrica'},
+  {date:'2026-06-11',stage:'group',groupId:'A',home:'southkorea',away:'czechia'},
+  // Fri Jun 12
+  {date:'2026-06-12',stage:'group',groupId:'B',home:'canada',    away:'bosnia'},
+  {date:'2026-06-12',stage:'group',groupId:'D',home:'usa',       away:'paraguay'},
+  // Sat Jun 13
+  {date:'2026-06-13',stage:'group',groupId:'B',home:'qatar',     away:'switzerland'},
+  {date:'2026-06-13',stage:'group',groupId:'C',home:'brazil',    away:'morocco'},
+  {date:'2026-06-13',stage:'group',groupId:'C',home:'haiti',     away:'scotland'},
+  {date:'2026-06-13',stage:'group',groupId:'D',home:'australia', away:'turkey'},
+  // Sun Jun 14
+  {date:'2026-06-14',stage:'group',groupId:'E',home:'germany',   away:'curacao'},
+  {date:'2026-06-14',stage:'group',groupId:'F',home:'netherlands',away:'japan'},
+  {date:'2026-06-14',stage:'group',groupId:'E',home:'ivorycoast',away:'ecuador'},
+  {date:'2026-06-14',stage:'group',groupId:'F',home:'sweden',    away:'tunisia'},
+  // Mon Jun 15
+  {date:'2026-06-15',stage:'group',groupId:'H',home:'spain',     away:'capeverde'},
+  {date:'2026-06-15',stage:'group',groupId:'G',home:'belgium',   away:'egypt'},
+  {date:'2026-06-15',stage:'group',groupId:'H',home:'saudiarabia',away:'uruguay'},
+  {date:'2026-06-15',stage:'group',groupId:'G',home:'iran',      away:'newzealand'},
+  // Tue Jun 16
+  {date:'2026-06-16',stage:'group',groupId:'I',home:'france',    away:'senegal'},
+  {date:'2026-06-16',stage:'group',groupId:'I',home:'iraq',      away:'norway'},
+  {date:'2026-06-16',stage:'group',groupId:'J',home:'argentina', away:'algeria'},
+  {date:'2026-06-16',stage:'group',groupId:'J',home:'austria',   away:'jordan'},
+  // Wed Jun 17
+  {date:'2026-06-17',stage:'group',groupId:'K',home:'portugal',  away:'drcongo'},
+  {date:'2026-06-17',stage:'group',groupId:'L',home:'england',   away:'croatia'},
+  {date:'2026-06-17',stage:'group',groupId:'L',home:'ghana',     away:'panama'},
+  {date:'2026-06-17',stage:'group',groupId:'K',home:'uzbekistan',away:'colombia'},
+
+  // ── GROUP STAGE MATCHDAY 2 ──────────────────────────────────
+  // Thu Jun 18
+  {date:'2026-06-18',stage:'group',groupId:'A',home:'czechia',   away:'southafrica'},
+  {date:'2026-06-18',stage:'group',groupId:'B',home:'switzerland',away:'bosnia'},
+  {date:'2026-06-18',stage:'group',groupId:'B',home:'canada',    away:'qatar'},
+  {date:'2026-06-18',stage:'group',groupId:'A',home:'mexico',    away:'southkorea'},
+  // Fri Jun 19
+  {date:'2026-06-19',stage:'group',groupId:'C',home:'scotland',  away:'morocco'},
+  {date:'2026-06-19',stage:'group',groupId:'D',home:'usa',       away:'australia'},
+  {date:'2026-06-19',stage:'group',groupId:'C',home:'brazil',    away:'haiti'},
+  {date:'2026-06-19',stage:'group',groupId:'D',home:'turkey',    away:'paraguay'},
+  // Sat Jun 20
+  {date:'2026-06-20',stage:'group',groupId:'F',home:'netherlands',away:'sweden'},
+  {date:'2026-06-20',stage:'group',groupId:'E',home:'germany',   away:'ivorycoast'},
+  {date:'2026-06-20',stage:'group',groupId:'E',home:'ecuador',   away:'curacao'},
+  {date:'2026-06-20',stage:'group',groupId:'F',home:'tunisia',   away:'japan'},
+  // Sun Jun 21
+  {date:'2026-06-21',stage:'group',groupId:'H',home:'spain',     away:'saudiarabia'},
+  {date:'2026-06-21',stage:'group',groupId:'G',home:'belgium',   away:'iran'},
+  {date:'2026-06-21',stage:'group',groupId:'H',home:'uruguay',   away:'capeverde'},
+  {date:'2026-06-21',stage:'group',groupId:'G',home:'newzealand',away:'egypt'},
+  // Mon Jun 22
+  {date:'2026-06-22',stage:'group',groupId:'J',home:'argentina', away:'austria'},
+  {date:'2026-06-22',stage:'group',groupId:'I',home:'france',    away:'iraq'},
+  {date:'2026-06-22',stage:'group',groupId:'I',home:'norway',    away:'senegal'},
+  {date:'2026-06-22',stage:'group',groupId:'J',home:'jordan',    away:'algeria'},
+  // Tue Jun 23
+  {date:'2026-06-23',stage:'group',groupId:'K',home:'portugal',  away:'uzbekistan'},
+  {date:'2026-06-23',stage:'group',groupId:'L',home:'england',   away:'ghana'},
+  {date:'2026-06-23',stage:'group',groupId:'L',home:'panama',    away:'croatia'},
+  {date:'2026-06-23',stage:'group',groupId:'K',home:'colombia',  away:'drcongo'},
+
+  // ── GROUP STAGE MATCHDAY 3 ──────────────────────────────────
+  // Wed Jun 24
+  {date:'2026-06-24',stage:'group',groupId:'B',home:'switzerland',away:'canada'},
+  {date:'2026-06-24',stage:'group',groupId:'B',home:'bosnia',    away:'qatar'},
+  {date:'2026-06-24',stage:'group',groupId:'C',home:'scotland',  away:'brazil'},
+  {date:'2026-06-24',stage:'group',groupId:'C',home:'morocco',   away:'haiti'},
+  {date:'2026-06-24',stage:'group',groupId:'A',home:'czechia',   away:'mexico'},
+  {date:'2026-06-24',stage:'group',groupId:'A',home:'southafrica',away:'southkorea'},
+  // Thu Jun 25
+  {date:'2026-06-25',stage:'group',groupId:'E',home:'ecuador',   away:'germany'},
+  {date:'2026-06-25',stage:'group',groupId:'E',home:'curacao',   away:'ivorycoast'},
+  {date:'2026-06-25',stage:'group',groupId:'F',home:'japan',     away:'sweden'},
+  {date:'2026-06-25',stage:'group',groupId:'F',home:'tunisia',   away:'netherlands'},
+  {date:'2026-06-25',stage:'group',groupId:'D',home:'turkey',    away:'usa'},
+  {date:'2026-06-25',stage:'group',groupId:'D',home:'paraguay',  away:'australia'},
+  // Fri Jun 26
+  {date:'2026-06-26',stage:'group',groupId:'I',home:'norway',    away:'france'},
+  {date:'2026-06-26',stage:'group',groupId:'I',home:'senegal',   away:'iraq'},
+  {date:'2026-06-26',stage:'group',groupId:'H',home:'capeverde', away:'saudiarabia'},
+  {date:'2026-06-26',stage:'group',groupId:'H',home:'uruguay',   away:'spain'},
+  {date:'2026-06-26',stage:'group',groupId:'G',home:'egypt',     away:'iran'},
+  {date:'2026-06-26',stage:'group',groupId:'G',home:'newzealand',away:'belgium'},
+  // Sat Jun 27
+  {date:'2026-06-27',stage:'group',groupId:'L',home:'panama',    away:'england'},
+  {date:'2026-06-27',stage:'group',groupId:'L',home:'croatia',   away:'ghana'},
+  {date:'2026-06-27',stage:'group',groupId:'K',home:'colombia',  away:'portugal'},
+  {date:'2026-06-27',stage:'group',groupId:'K',home:'drcongo',   away:'uzbekistan'},
+  {date:'2026-06-27',stage:'group',groupId:'J',home:'algeria',   away:'austria'},
+  {date:'2026-06-27',stage:'group',groupId:'J',home:'jordan',    away:'argentina'},
+
+  // ── KNOCKOUT STUBS (teams TBD after group sim) ──────────────
+  {date:'2026-06-28',stage:'r32',  groupId:null,home:null,away:null},
+  {date:'2026-06-29',stage:'r32',  groupId:null,home:null,away:null},
+  {date:'2026-06-30',stage:'r32',  groupId:null,home:null,away:null},
+  {date:'2026-07-01',stage:'r32',  groupId:null,home:null,away:null},
+  {date:'2026-07-02',stage:'r32',  groupId:null,home:null,away:null},
+  {date:'2026-07-03',stage:'r32',  groupId:null,home:null,away:null},
+  {date:'2026-07-04',stage:'r16',  groupId:null,home:null,away:null},
+  {date:'2026-07-05',stage:'r16',  groupId:null,home:null,away:null},
+  {date:'2026-07-06',stage:'r16',  groupId:null,home:null,away:null},
+  {date:'2026-07-07',stage:'r16',  groupId:null,home:null,away:null},
+  {date:'2026-07-09',stage:'qf',   groupId:null,home:null,away:null},
+  {date:'2026-07-10',stage:'qf',   groupId:null,home:null,away:null},
+  {date:'2026-07-11',stage:'qf',   groupId:null,home:null,away:null},
+  {date:'2026-07-14',stage:'sf',   groupId:null,home:null,away:null},
+  {date:'2026-07-15',stage:'sf',   groupId:null,home:null,away:null},
+  {date:'2026-07-18',stage:'3rd',  groupId:null,home:null,away:null},
+  {date:'2026-07-19',stage:'final',groupId:null,home:null,away:null},
+].map(m => ({
+  ...m,
+  home: m.home ? gt(m.home) : null,
+  away: m.away ? gt(m.away) : null,
+}));
+
+function initPicksPage() {
+  // Populate date selector
+  const sel = document.getElementById('pick-date-sel');
+  const uniqueDates = [...new Set(SCHEDULE.map(m=>m.date))].sort();
+  sel.innerHTML = uniqueDates.map(d => {
+    const label = new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    return `<option value="${d}">${label}</option>`;
+  }).join('');
+  // Default to first available date
+  sel.value = uniqueDates[0];
+  buildPicks();
+}
+
+function getPick(match) {
+  if(!match.home || !match.away) return null;
+  const t1 = match.home, t2 = match.away;
+  const m = mup(t1, t2, true);
+
+  // Determine best bet type
+  let betType, betTeam, confidence, winPct, edge;
+
+  const bigFav = Math.max(m.w1, m.w2);
+  const underdog = m.w1 < m.w2 ? t1 : t2;
+  const favourite = m.w1 > m.w2 ? t1 : t2;
+  const favWinPct = Math.round(bigFav * 100);
+  const drawPct = Math.round(m.dr * 100);
+
+  // Value bet logic — tiered by confidence:
+  // HIGH   : favourite win prob >= 72% — clear model edge
+  // MEDIUM : favourite win prob 62-71% OR strong draw angle
+  // SPECULATIVE : only when no clear edge exists (last resort)
+
+  const ovrDiff = favourite.ovr - underdog.ovr;
+
+  if(favWinPct >= 72) {
+    // Clear favourite — HIGH or MEDIUM confidence ML
+    betType = 'ML';
+    betTeam = favourite;
+    confidence = favWinPct >= 80 ? 'HIGH' : 'MEDIUM';
+    winPct = favWinPct;
+    edge = `${favourite.n} hold a ${ovrDiff}-point OVR edge backed by an ELO of ${favourite.elo}. Model win probability of ${favWinPct}% represents strong expected value.`;
+  } else if(ovrDiff >= 8 && favWinPct >= 62) {
+    // Moderate favourite with meaningful rating gap
+    betType = 'ML';
+    betTeam = favourite;
+    confidence = 'MEDIUM';
+    winPct = favWinPct;
+    edge = `${favourite.n} carry a clear ${ovrDiff}-point rating advantage. ${favWinPct}% win probability justifies backing them despite close group-stage dynamics.`;
+  } else if(drawPct >= 26 && ovrDiff <= 5) {
+    // Genuinely even match — draw has value
+    betType = 'DRAW';
+    betTeam = null;
+    confidence = 'MEDIUM';
+    winPct = drawPct;
+    edge = `Just ${ovrDiff} OVR points separate these sides. Draw probability of ${drawPct}% is strong value in a tight group-stage clash.`;
+  } else if(favWinPct >= 58) {
+    // Slight favourite — still back them but flag it
+    betType = 'ML';
+    betTeam = favourite;
+    confidence = 'MEDIUM';
+    winPct = favWinPct;
+    edge = `${favourite.n} are narrow model favourites at ${favWinPct}%. Marginal edge — best used as part of a parlay rather than a standalone.`;
+  } else {
+    // Truly a coin-flip — only then consider upset/speculative
+    betType = 'UPSET ML';
+    betTeam = underdog;
+    confidence = 'SPECULATIVE';
+    winPct = Math.round(Math.min(m.w1, m.w2) * 100);
+    edge = `No clear model edge. ${underdog.n}'s DHI of ${underdog.dhi}/100 and ${underdog.style} profile gives slim upset value.`;
+  }
+
+  // Build bullet reasons
+  const reasons = [];
+
+  if(betTeam) {
+    if(betTeam.ovr >= 85) reasons.push(`Elite overall rating of ${betTeam.ovr}/100 — top-tier World Cup contender`);
+    else reasons.push(`Overall rating of ${betTeam.ovr}/100 — model composite (FIFA + ELO + Form)`);
+    if(betTeam.atk >= 82) reasons.push(`World-class attack: ${betTeam.atk} ATK rating (top ${betTeam.atk>=90?'3':'10'} at this tournament)`);
+    if(betTeam.def >= 82) reasons.push(`Defensive fortress: ${betTeam.def} DEF rating — one of the best defensive units in the tournament`);
+    if(betTeam.form >= 82) reasons.push(`In red-hot form entering the tournament (${betTeam.form}/100 form score)`);
+    if(betTeam.exp >= 85) reasons.push(`Vast tournament experience: ${betTeam.exp}/100 — knows how to win at this level`);
+    if(betTeam.dhi >= 55) reasons.push(`Dark Horse Index of ${betTeam.dhi}/100 — value underestimated by markets`);
+    if(betTeam.elo >= 1950) reasons.push(`ELO rating of ${betTeam.elo} — among the highest at WC2026`);
+    reasons.push(`Tactical style (${betTeam.style}) creates favourable matchup against ${betType==='UPSET ML'?favourite.style:underdog?.style||'opponent'}`);
+  } else {
+    // Draw
+    reasons.push(`OVR gap of just ${ovrDiff} — genuinely balanced matchup between ${t1.n} (${t1.ovr}) and ${t2.n} (${t2.ovr})`);
+    reasons.push(`Model draw probability: ${drawPct}% — backed by tight tactical styles (${t1.style} vs ${t2.style})`);
+    reasons.push(`Group stage dynamics favour conservative result — both teams managing risk`);
+    reasons.push(`Combined xG projection: ${m.xg1.toFixed(1)} vs ${m.xg2.toFixed(1)} — low-scoring, competitive affair expected`);
+  }
+
+  // Expected goals insight
+  const xgNote = betTeam
+    ? `Expected goals: ${betTeam.id===t1.id?m.xg1.toFixed(2):m.xg2.toFixed(2)} xG for ${betTeam.n} vs ${betTeam.id===t1.id?m.xg2.toFixed(2):m.xg1.toFixed(2)} xG for ${betType==='UPSET ML'?favourite.n:underdog?.n||'opponent'}`
+    : `Expected goals: ${m.xg1.toFixed(2)} (${t1.n}) vs ${m.xg2.toFixed(2)} (${t2.n})`;
+
+  return {
+    match, t1, t2, m,
+    betType, betTeam, confidence, winPct, edge, reasons, xgNote,
+    ovrDiff, favWinPct, drawPct,
+    favourite, underdog,
+    displayName: betTeam ? `${betTeam.n} ${betType}` : `Draw — ${t1.n} vs ${t2.n}`,
+  };
+}
+
+function buildPicks() {
+  const date = document.getElementById('pick-date-sel').value;
+  const stage = document.getElementById('pick-stage-sel').value;
+  const label = new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('pick-date-band').textContent = new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+  // Filter matches for this date (use stage from selector or match date's stage)
+  const todayMatches = SCHEDULE.filter(m => m.date === date);
+  if(!todayMatches.length) {
+    document.getElementById('top-pick-card').innerHTML = `<div class="panel" style="padding:30px;text-align:center;font-family:var(--mono);font-size:11px;color:rgba(0,0,0,.3)">No matches scheduled for this date — select another date from the dropdown.</div>`;
+    document.getElementById('all-picks-list').innerHTML = '';
+    document.getElementById('parlay-section').style.display = 'none';
+    return;
+  }
+
+  const picks = todayMatches.map(m => getPick(m)).filter(Boolean);
+  // Sort by confidence then winPct
+  const confOrder = { HIGH:0, MEDIUM:1, SPECULATIVE:2 };
+  // Sort: confidence tier first, then by the favourite's win probability (not draw %)
+  picks.sort((a,b) => {
+    const confDiff = (confOrder[a.confidence]||1) - (confOrder[b.confidence]||1);
+    if(confDiff !== 0) return confDiff;
+    // Within same confidence tier, prefer higher favourite win %
+    const aFavPct = a.betType === 'DRAW' ? a.drawPct : a.favWinPct;
+    const bFavPct = b.betType === 'DRAW' ? b.drawPct : b.favWinPct;
+    return bFavPct - aFavPct;
+  });
+  // If top pick is SPECULATIVE and there are multiple matches, look across nearby dates too
+  // (group stage often has matches from adjacent groups on the same day)
+
+  const top = picks[0];
+  const confColor = {HIGH:'var(--red)',MEDIUM:'var(--purple)',SPECULATIVE:'#854F0B'}[top.confidence]||'var(--black)';
+  const confBg = {HIGH:'rgba(232,25,44,.06)',MEDIUM:'rgba(91,45,142,.06)',SPECULATIVE:'rgba(133,79,11,.06)'}[top.confidence]||'var(--offwhite)';
+
+  // TOP PICK
+  document.getElementById('top-pick-card').innerHTML = `
+  <div class="panel" style="border-top:4px solid ${confColor}">
+    <div style="background:${confBg};padding:12px 16px;border-bottom:1.5px solid var(--mid);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:${confColor};letter-spacing:1.5px;font-weight:600;margin-bottom:3px">⭐ TOP PICK — ${label.toUpperCase()}</div>
+        <div style="font-family:var(--bebas);font-size:28px;letter-spacing:1.5px;color:var(--black);line-height:1">${top.displayName}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.45);margin-top:3px">
+          ${top.t1.f} ${top.t1.n} vs ${top.t2.f} ${top.t2.n}
+          ${top.match.groupId ? `· Group ${top.match.groupId}` : ''}
+          ${top.match.stage !== 'group' ? `· ${top.match.stage.toUpperCase()}` : ''}
+        </div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-family:var(--bebas);font-size:40px;color:${confColor};letter-spacing:1px;line-height:1">${top.winPct}%</div>
+        <div style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4);letter-spacing:1px">MODEL WIN PROB</div>
+      </div>
+      <div style="background:${confColor};padding:4px 10px">
+        <div style="font-family:var(--bebas);font-size:13px;letter-spacing:1.5px;color:#fff">${top.confidence} CONFIDENCE</div>
+      </div>
+    </div>
+    <div class="pb">
+      <div style="font-family:var(--bebas);font-size:13px;letter-spacing:1px;color:rgba(0,0,0,.35);margin-bottom:10px">WHY WE LIKE IT</div>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">
+        ${top.reasons.map(r=>`
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="color:${confColor};font-size:14px;margin-top:-1px;flex-shrink:0">•</span>
+          <span style="font-size:13px;line-height:1.5">${r}</span>
+        </div>`).join('')}
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="color:${confColor};font-size:14px;margin-top:-1px;flex-shrink:0">•</span>
+          <span style="font-size:13px;line-height:1.5">${top.xgNote}</span>
+        </div>
+      </div>
+
+      <!-- HEAD TO HEAD STRIP -->
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--mid);margin-bottom:12px">
+        ${[
+          {l:'Win %',v:top.favWinPct+'%',c:confColor},
+          {l:'Draw %',v:top.drawPct+'%',c:'rgba(0,0,0,.6)'},
+          {l:'xG Fav',v:top.betTeam?( top.betTeam.id===top.t1.id?top.m.xg1.toFixed(2):top.m.xg2.toFixed(2) ):(top.m.xg1.toFixed(2)),c:'var(--black)'},
+          {l:'OVR Edge',v:'+'+top.ovrDiff,c:confColor},
+          {l:'Dark Horse',v:(top.betTeam||top.underdog).dhi,c:'var(--purple)'},
+          {l:'ELO',v:(top.betTeam||top.favourite).elo,c:'var(--black)'},
+        ].map((x,i)=>`
+        <div style="padding:10px 8px;text-align:center;border-right:${i<5?'1px solid var(--mid)':'none'}">
+          <div style="font-family:var(--bebas);font-size:22px;color:${x.c};letter-spacing:1px;line-height:1">${x.v}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:rgba(0,0,0,.4);margin-top:2px;letter-spacing:.5px">${x.l}</div>
+        </div>`).join('')}
+      </div>
+
+      <!-- EDGE SUMMARY -->
+      <div style="background:var(--offwhite);border-left:3px solid ${confColor};padding:10px 12px;font-size:12px;color:rgba(0,0,0,.6);font-style:italic;line-height:1.5">
+        ${top.edge}
+      </div>
+    </div>
+  </div>`;
+
+  // ALL PICKS FOR THE DAY
+  if(picks.length > 1) {
+    document.getElementById('all-picks-list').innerHTML = `
+    <div class="panel">
+      <div class="ph"><span class="ph-title">All ${picks.length} Match Picks — ${label}</span><span class="ph-tag tag-p">Ranked by Model Confidence</span></div>
+      ${picks.map((pk, idx) => {
+        const cc = {HIGH:'var(--red)',MEDIUM:'var(--purple)',SPECULATIVE:'#854F0B'}[pk.confidence]||'var(--black)';
+        return `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--mid);${idx===picks.length-1?'border-bottom:none':''}flex-wrap:wrap">
+          <div style="font-family:var(--bebas);font-size:18px;color:rgba(0,0,0,.25);width:24px">${idx+1}</div>
+          <div style="flex:1;min-width:180px">
+            <div style="font-weight:700;font-size:13px">${pk.displayName}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:rgba(0,0,0,.4);margin-top:2px">
+              ${pk.t1.f} ${pk.t1.n} vs ${pk.t2.f} ${pk.t2.n}
+              ${pk.match.groupId?`· Grp ${pk.match.groupId}`:''}
+            </div>
+          </div>
+          <div style="font-family:var(--bebas);font-size:22px;color:${cc};letter-spacing:1px">${pk.winPct}%</div>
+          <div style="background:${cc};padding:3px 8px">
+            <div style="font-family:var(--bebas);font-size:11px;letter-spacing:1px;color:#fff">${pk.confidence}</div>
+          </div>
+          <div style="font-size:11px;color:rgba(0,0,0,.5);font-style:italic;flex:2;min-width:200px">${pk.edge}</div>
+          <button class="btn btn-outline" style="font-size:11px;padding:6px 12px" onclick="openTeam('${pk.betTeam?.id||pk.favourite.id}')">Profile</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    // Parlay section — top 3 picks with HIGH or MEDIUM confidence
+    const parlayPicks = picks.filter(p=>p.confidence!=='SPECULATIVE').slice(0,3);
+    if(parlayPicks.length >= 2) {
+      const combinedPct = Math.round(parlayPicks.reduce((acc,p)=>acc*(p.winPct/100),1)*100);
+      document.getElementById('parlay-section').style.display = 'block';
+      document.getElementById('parlay-body').innerHTML = `
+        <div style="margin-bottom:12px;font-family:var(--mono);font-size:10px;color:rgba(0,0,0,.45)">
+          Combining the ${parlayPicks.length} highest-confidence picks from today's slate into a model parlay.
+          Combined probability (independent events): <strong style="color:var(--red)">${combinedPct}%</strong>
+        </div>
+        ${parlayPicks.map((pk,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:${i<parlayPicks.length-1?'1px solid var(--mid)':'none'}">
+          <div style="font-family:var(--bebas);font-size:16px;color:rgba(0,0,0,.3)">${i+1}</div>
+          <div style="font-size:14px">${pk.betTeam?pk.betTeam.f:pk.t1.f+''+pk.t2.f}</div>
+          <div style="font-weight:700;flex:1">${pk.displayName}</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--red)">${pk.winPct}%</div>
+        </div>`).join('')}
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(232,25,44,.05);border:1px solid rgba(232,25,44,.15);font-size:11px;color:rgba(0,0,0,.55);font-style:italic">
+          ⚠️ Parlay probability reflects independent model estimates. Real-world correlations, lineup changes, and market movement are not accounted for. Always gamble responsibly.
+        </div>`;
+    }
+  } else {
+    document.getElementById('all-picks-list').innerHTML = '';
+    document.getElementById('parlay-section').style.display = 'none';
+  }
+}
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  fillSelects();
+  renderRankings([...T].sort((a,b)=>b.ovr-a.ovr));
+  renderGroupGrid({});
+  buildHome();
+});
+</script>
+</body>
+</html>
